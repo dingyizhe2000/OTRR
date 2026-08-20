@@ -244,7 +244,7 @@ H_plugin = kron(design second moment, mean OT-map Jacobian)
 
 with the fitted-rank observation-level score
 
-$$
+```math
 \widehat\psi_i
 =
 \operatorname{vec}\{\widehat T(\widehat\xi_i)X_i^\top\},
@@ -252,15 +252,15 @@ $$
 \widehat{\operatorname{IF}}_i
 =
 \widehat H^{-1}(\widehat\psi_i-\bar\psi).
-$$
+```
 
 ### Case-weight influence covariance
 
 The optional `case_weight_if_covariance` differentiates the finite-sample
 dense-PNW objective with respect to observation weights. For normalized case
-weights \(w=(w_1,\ldots,w_n)\), define
+weights $w=(w_1,\ldots,w_n)$, define
 
-$$
+```math
 \widehat L_{n,k}(\theta,w)
 =
 \sum_{i=1}^n
@@ -269,31 +269,31 @@ w_i
 R_i(\theta),
 \widehat T_{\theta,w}^{(k)}\{R_i(\theta)\}
 \right\rangle,
-$$
+```
 
-where \(\widehat T_{\theta,w}^{(k)}\) depends on the weighted empirical
+where $\widehat T_{\theta,w}^{(k)}$ depends on the weighted empirical
 residual distribution.
 
 Let
 
-$$
+```math
 \widehat A_k
 =
 \nabla_\theta^2
 \widehat L_{n,k}(\widehat\theta_k,w_0),
 \qquad
 w_0=n^{-1}\mathbf 1_n,
-$$
+```
 
 and consider the contamination path
 
-$$
+```math
 w^{(i)}(t)=(1-t)w_0+t e_i.
-$$
+```
 
 The case-weight score derivative and influence function are
 
-$$
+```math
 \widehat C_{ik}
 =
 \left.
@@ -305,12 +305,12 @@ $$
 \widehat{\operatorname{IF}}_{ik}^{\rm cw}
 =
 -\widehat A_k^{-1}\widehat C_{ik}.
-$$
+```
 
-For a \(K\)-reference ensemble, the influence functions are averaged before
+For a $K$-reference ensemble, the influence functions are averaged before
 forming the covariance:
 
-$$
+```math
 \widehat{\operatorname{IF}}_i^{\rm cw,ens}
 =
 \frac1K\sum_{k=1}^K
@@ -321,7 +321,7 @@ $$
 \frac1n\sum_{i=1}^n
 \widehat{\operatorname{IF}}_i^{\rm cw,ens}
 \widehat{\operatorname{IF}}_i^{\rm cw,ens\top}.
-$$
+```
 
 The required higher-order derivatives use dense PyTorch even when fitting used dense Triton, since the custom Triton backward does not support double backward. For `intercept_mode="pilot"`, the saved `x_mean` and `y_mean` are treated as fixed tuning quantities.
 
