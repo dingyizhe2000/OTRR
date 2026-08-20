@@ -247,9 +247,9 @@ with the fitted-rank observation-level score
 ```math
 \widehat\psi_i
 =
-\operatorname{vec}\{\widehat T(\widehat\xi_i)X_i^\top\},
+\mathrm{vec}\{\widehat T(\widehat\xi_i)X_i^\top\},
 \qquad
-\widehat{\operatorname{IF}}_i
+\widehat{\mathrm{IF}}_i
 =
 \widehat H^{-1}(\widehat\psi_i-\bar\psi).
 ```
@@ -302,7 +302,7 @@ The case-weight score derivative and influence function are
 \widehat L_{n,k}\{\widehat\theta_k,w^{(i)}(t)\}
 \right|_{t=0},
 \qquad
-\widehat{\operatorname{IF}}_{ik}^{\rm cw}
+\widehat{\mathrm{IF}}_{ik}^{\mathrm{cw}}
 =
 -\widehat A_k^{-1}\widehat C_{ik}.
 ```
@@ -311,16 +311,16 @@ For a $K$-reference ensemble, the influence functions are averaged before
 forming the covariance:
 
 ```math
-\widehat{\operatorname{IF}}_i^{\rm cw,ens}
+\widehat{\mathrm{IF}}_i^{\mathrm{cw,ens}}
 =
 \frac1K\sum_{k=1}^K
-\widehat{\operatorname{IF}}_{ik}^{\rm cw},
+\widehat{\mathrm{IF}}_{ik}^{\mathrm{cw}},
 \qquad
-\widehat V_{\rm cw}
+\widehat V_{\mathrm{cw}}
 =
 \frac1n\sum_{i=1}^n
-\widehat{\operatorname{IF}}_i^{\rm cw,ens}
-\widehat{\operatorname{IF}}_i^{\rm cw,ens\top}.
+\widehat{\mathrm{IF}}_i^{\mathrm{cw,ens}}
+\widehat{\mathrm{IF}}_i^{\mathrm{cw,ens}\top}.
 ```
 
 The required higher-order derivatives use dense PyTorch even when fitting used dense Triton, since the custom Triton backward does not support double backward. For `intercept_mode="pilot"`, the saved `x_mean` and `y_mean` are treated as fixed tuning quantities.
