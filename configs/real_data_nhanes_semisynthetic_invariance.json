@@ -1,0 +1,47 @@
+{
+  "experiment": "nhanes_p43_d7_semisynthetic_orthogonal_invariance",
+  "repetitions": 10,
+  "n": 8237,
+  "p": 43,
+  "d": 7,
+  "methods": ["LS", "Radial Huber", "CW-Huber", "CW-ASM", "CW-CQR", "OTRR"],
+  "noise": ["C"],
+  "kappa": [0.25, 0.5],
+  "rotations": {
+    "identity": true,
+    "haar_seeds": [2026081401, 2026081402]
+  },
+  "template": {
+    "source": "formal d=7 CW-CQR-initialized OTRR K=10 fold/representation fits",
+    "aggregation": "mean of 15 mapped-back fold/representation ensembles",
+    "support": "intersection of strict stable genus-vs-Other contrasts across Helmert and two rotations",
+    "expected_nonzero_contrasts": 71
+  },
+  "multiple_testing": {
+    "family": "301 genus-vs-Other contrasts",
+    "procedure": "Benjamini-Hochberg",
+    "q": 0.05
+  },
+  "inference": {
+    "vectorization": "column-major vec(B)",
+    "covariance": "analytic baseline influence-function/sandwich covariance",
+    "intercept": "mean intercept with centered slopes"
+  },
+  "otrr": {
+    "initializer": "CW-CQR",
+    "K": 10,
+    "m_ref": 65536,
+    "epsilon": 0.1,
+    "steps": 500,
+    "learning_rate": 0.0001,
+    "reference_seeds": [20260721, 20260722, 20260723, 20260724, 20260725, 20260726, 20260727, 20260728, 20260729, 20260730],
+    "reference_convention": "same fixed unrotated cloud under all representations",
+    "covariance": "plugin_covariance"
+  },
+  "runtime": {
+    "workers": 4,
+    "multiprocessing": "spawn",
+    "blas_threads_per_worker": 1,
+    "interim_summary_every_completed_tasks": 75
+  }
+}

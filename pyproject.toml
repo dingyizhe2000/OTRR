@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "otrank-paper"
+version = "0.1.0"
+description = "Reproducibility code for OT-rank regression paper experiments."
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "requests",
+    "scikit-learn",
+    "scipy",
+    "seaborn",
+    "torch",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+paper = ["jupyterlab"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"otrank.estimators" = ["fit_cw_cqr.R"]

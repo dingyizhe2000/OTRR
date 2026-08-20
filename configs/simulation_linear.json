@@ -1,0 +1,199 @@
+{
+  "asm_numeric_threads": 1,
+  "asm_response_workers": 1,
+  "dgp": {
+    "coef_style": "decay",
+    "mu_nonzero": 4,
+    "mu_value": 1.0,
+    "name": "linear",
+    "singular_decay": 0.7,
+    "x_center": false
+  },
+  "dimensions": [
+    {
+      "d": 10,
+      "p": 20
+    }
+  ],
+  "experiment": "main_linear_simulation",
+  "hardware_profile": "rtx3090",
+  "hardware_profiles": {
+    "a100": {
+      "ot_rank": {
+        "triton_direct_block_m": 2048,
+        "triton_direct_block_n": 4,
+        "triton_implicit_add_block_m": 512,
+        "triton_matvec_block_m": 512,
+        "triton_matvec_block_n": 32,
+        "triton_num_warps": 4
+      },
+      "resource_scheduler": {
+        "allow_cpu_ot_fallback": false,
+        "cpu_ot_threads": 1,
+        "cpu_ot_workers": 0,
+        "cpu_workers": 1,
+        "enabled": true,
+        "gpu_batch_reference_seeds": true,
+        "gpu_torch_threads": 1,
+        "gpu_workers": 1,
+        "reference_flush_every": 5
+      }
+    },
+    "rtx3090": {
+      "ot_rank": {
+        "triton_direct_block_m": 1024,
+        "triton_direct_block_n": 8,
+        "triton_implicit_add_block_m": 512,
+        "triton_matvec_block_m": 512,
+        "triton_matvec_block_n": 32,
+        "triton_num_warps": 4
+      }
+    }
+  },
+  "methods": [
+    "zero_intercept_ols",
+    "coordinatewise_huber_tau1p345",
+    "radial_huber_tau1p345_sqrtd",
+    "coordinatewise_asm_zero_intercept",
+    "mcqr_ot_lens",
+    "ot_rank_asm_init"
+  ],
+  "paper_methods": [
+    "zero_intercept_ols",
+    "coordinatewise_huber_tau1p345",
+    "radial_huber_tau1p345_sqrtd",
+    "coordinatewise_asm_zero_intercept",
+    "cw_cqr_20levels",
+    "mcqr_ot_lens",
+    "ot_rank_asm_init"
+  ],
+  "cw_cqr": {
+    "method_id": "cw_cqr_20levels",
+    "runner": "python -m otrank.experiments.run_cw_cqr_simulation",
+    "quantile_levels": 20,
+    "tau_rule": "l/(L+1), l=1,...,L",
+    "fit": {
+      "method": "ip",
+      "max_iterations": 1000,
+      "tolerance": 1e-7
+    },
+    "inference": {
+      "derivative_ridge": 1e-10,
+      "vectorization": "column-major vec(B)",
+      "covariance_convention": "V=Cov(sqrt(n) vec(Bhat-B0)); Cov(Bhat)=V/n"
+    },
+    "execution": {
+      "workers": 8,
+      "r_library_env": "CQR_R_LIB"
+    }
+  },
+  "n_test": 5000,
+  "noises": [
+    {
+      "label": "A",
+      "name": "low_rank_direction_outlier",
+      "params": {
+        "eps": 0.1,
+        "rank": 1,
+        "scale": 30.0,
+        "sigma": 1.0,
+        "standardize": "global",
+        "tail": "centered_lognormal"
+      }
+    },
+    {
+      "label": "B",
+      "name": "low_rank_direction_outlier",
+      "params": {
+        "alpha": 2.5,
+        "eps": 0.1,
+        "rank": 3,
+        "scale": 20.0,
+        "standardize": "global",
+        "tail": "centered_pareto"
+      }
+    },
+    {
+      "label": "C",
+      "name": "eight_cluster",
+      "params": {
+        "scale": 1.0,
+        "sigma": 0.3,
+        "standardize": "global"
+      }
+    }
+  ],
+  "ot_rank": {
+    "ot_estimator": "pnw",
+    "backend": "dense_triton",
+    "checkpoint_every": 50,
+    "epsilon": 0.1,
+    "eval_iters": [
+      500
+    ],
+    "implicit_cache_dtype": "float32",
+    "implicit_chunk_size": 8192,
+    "implicit_gmres_iters": 30,
+    "implicit_gmres_tol": 1e-06,
+    "implicit_solve_dtype": "float32",
+    "lr": 0.0001,
+    "m_ref": 262144,
+    "reference_seed": 20260721,
+    "sinkhorn_iters": 1,
+    "sinkhorn_warm_start": true,
+    "steps": 500,
+    "trace_every": 50,
+    "trace_first_step": false,
+    "trace_tensor_stats": false
+  },
+  "ot_rank_ensemble": {
+    "reference_ensemble_k": 50,
+    "reference_seed_start": 20260721,
+    "report_k": [
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      35,
+      40,
+      45,
+      50
+    ]
+  },
+  "reps": 50,
+  "resource_scheduler": {
+    "allow_cpu_ot_fallback": false,
+    "cpu_ot_checkpoint_every": 5,
+    "cpu_ot_threads": 1,
+    "cpu_ot_workers": 0,
+    "cpu_workers": 32,
+    "enabled": true,
+    "gpu_batch_reference_seeds": true,
+    "gpu_torch_threads": 1,
+    "gpu_workers": 1
+  },
+  "runtime": {
+    "device": "cuda",
+    "dtype": "float32"
+  },
+  "sample_size_overrides": {
+    "1000": {
+      "ot_rank": {
+        "m_ref": 524288
+      }
+    }
+  },
+  "sample_sizes": [
+    1000
+  ],
+  "seed_start": 20261001,
+  "system_monitor": {
+    "enabled": true,
+    "filename": "system_monitor.csv",
+    "interval_sec": 5
+  },
+  "workers": 32,
+  "x_rho": 0.0
+}

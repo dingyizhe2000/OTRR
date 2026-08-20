@@ -1,0 +1,64 @@
+{
+  "experiment": "nhanes_p43_oral_microbiome_d7_final",
+  "result_root": "../results/real_data/nhanes_p43_final",
+  "sample_size": 8237,
+  "predictor_dimension": 43,
+  "response_dimension": 7,
+  "composition_dimension": 8,
+  "composition_components": [
+    "Actinomyces",
+    "Rothia",
+    "Prevotella 7",
+    "Gemella",
+    "Streptococcus",
+    "Veillonella",
+    "Haemophilus",
+    "Other"
+  ],
+  "zero_replacement": "train_half_q01",
+  "outer_folds": 5,
+  "split_seed": 20260726,
+  "rotation_seeds": [20260731, 20260732],
+  "methods": ["LS", "Radial Huber", "CW-Huber", "CW-ASM", "CW-CQR", "OTRR"],
+  "cw_cqr": {
+    "quantile_levels": 20,
+    "tau_definition": "tau_l=l/21, l=1,...,20",
+    "inference": "analytic_IF"
+  },
+  "otrr": {
+    "initializer": "CW-CQR",
+    "m_ref": 65536,
+    "K": 10,
+    "reference_seeds": [
+      20260721,
+      20260722,
+      20260723,
+      20260724,
+      20260725,
+      20260726,
+      20260727,
+      20260728,
+      20260729,
+      20260730
+    ],
+    "epsilon": 0.1,
+    "steps": 500,
+    "optimizer": "Adam",
+    "learning_rate": 0.0001,
+    "sinkhorn_updates_per_step": 1,
+    "sinkhorn_warm_start": true,
+    "backend": "dense_triton_float32",
+    "inference": "plugin_covariance",
+    "inference_residuals": "estimated",
+    "dual_tolerance": 0.001,
+    "dual_max_iterations": 500,
+    "dual_check_every": 5
+  },
+  "bootstrap": {
+    "repetitions": 2000,
+    "seed": 20260727,
+    "fixed_oof_predictions": true
+  },
+  "vectorization": "column-major vec(B)",
+  "survey_weights": false
+}

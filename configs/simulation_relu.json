@@ -1,0 +1,156 @@
+{
+  "description": "Complete paper-facing ReLU simulation: four classical baselines, CW-CQR, and CW-CQR-initialized OTRR.",
+  "allow_exploratory": false,
+  "dgp": {"name": "gaussian_nonlinear"},
+  "dimensions": [{"p": 8, "d": 4}],
+  "experiment": "relu_simulation_n1000_p8_d4_rep50",
+  "methods": [
+    "relu_least_squares",
+    "relu_coordinatewise_huber",
+    "relu_radial_huber",
+    "relu_coordinatewise_asm",
+    "relu_coordinatewise_cqr",
+    "relu_pnw_fullrisk"
+  ],
+  "n_test": 5000,
+  "noises": [
+    {"label": "A", "name": "low_rank_direction_outlier", "params": {"eps": 0.1, "rank": 1, "scale": 30.0, "sigma": 1.0, "standardize": "global", "tail": "centered_lognormal"}},
+    {"label": "B", "name": "low_rank_direction_outlier", "params": {"alpha": 2.5, "eps": 0.1, "rank": 3, "scale": 20.0, "standardize": "global", "tail": "centered_pareto"}},
+    {"label": "C", "name": "eight_cluster", "params": {"scale": 1.0, "sigma": 0.3, "standardize": "global"}}
+  ],
+  "relu_baselines": {
+    "width": 16,
+    "hidden_layers": 3,
+    "steps": 1000,
+    "lr": 0.001,
+    "optimizer": "adam",
+    "momentum": 0.0,
+    "output_init": "default",
+    "ls_weight_decay": 0.01,
+    "huber_weight_decay": 0.001,
+    "radial_huber_weight_decay": 0.001,
+    "cqr_weight_decay": 0.001,
+    "huber_tau": 1.345,
+    "radial_huber_tau_multiplier": 1.345,
+    "cqr_quantile_levels": [
+      0.047619047619047616,
+      0.09523809523809523,
+      0.14285714285714285,
+      0.19047619047619047,
+      0.23809523809523808,
+      0.2857142857142857,
+      0.3333333333333333,
+      0.38095238095238093,
+      0.42857142857142855,
+      0.47619047619047616,
+      0.5238095238095238,
+      0.5714285714285714,
+      0.6190476190476191,
+      0.6666666666666666,
+      0.7142857142857143,
+      0.7619047619047619,
+      0.8095238095238095,
+      0.8571428571428571,
+      0.9047619047619048,
+      0.9523809523809523
+    ],
+    "intercept_mode": "center",
+    "seed": 20260721
+  },
+  "relu_asm": {
+    "steps": 1000,
+    "lr": 0.0005,
+    "optimizer": "adam",
+    "momentum": 0.0,
+    "weight_decay": 0.001,
+    "alt_iter": 1,
+    "score_grid_size": 3000,
+    "kernel_points": 32768,
+    "bandwidth": "nrd0"
+  },
+  "relu_pnw": {
+    "label": "relu_pnw_cw_cqr_init",
+    "init_fit_label": "relu_coordinatewise_cqr",
+    "init_cache_dirs": ["../results/simulation/relu_n1000_p8_d4_final/source/cw_cqr"],
+    "require_existing_init": true,
+    "width": 16,
+    "hidden_layers": 3,
+    "intercept_mode": "center",
+    "backend": "dense_triton",
+    "m_ref": 131072,
+    "reference_distribution": "uniform_ball",
+    "reference_radius": 1.0,
+    "reference_seed": 20260721,
+    "epsilon": 0.1,
+    "sinkhorn_iters": 1,
+    "sinkhorn_warm_start": true,
+    "optimizer": "adam",
+    "steps": 25,
+    "eval_iters": [25],
+    "checkpoint_every": 25,
+    "lr": 0.001,
+    "weight_decay": 0.001,
+    "implicit_solve_dtype": "float32",
+    "implicit_gmres_iters": 30,
+    "implicit_gmres_tol": 1e-6,
+    "implicit_ridge": 1e-8,
+    "implicit_chunk_size": 1024,
+    "implicit_cache_dtype": "float32",
+    "triton_direct_block_n": 8,
+    "triton_direct_block_m": 1024,
+    "triton_matvec_block_n": 32,
+    "triton_matvec_block_m": 256,
+    "triton_implicit_add_block_m": 256,
+    "triton_num_warps": 8,
+    "ot_rank_rotation_diagnostic": false
+  },
+  "ot_rank_ensemble": {
+    "reference_seed_start": 20260721,
+    "reference_ensemble_k": 10,
+    "num_reference_seeds": 10,
+    "report_k": [10]
+  },
+  "stages": {
+    "baselines": {
+      "methods": [
+        "relu_least_squares",
+        "relu_coordinatewise_huber",
+        "relu_radial_huber",
+        "relu_coordinatewise_asm"
+      ],
+      "runtime": {"device": "cpu", "dtype": "float64"},
+      "workers": 4
+    },
+    "cw_cqr": {
+      "methods": ["relu_coordinatewise_cqr"],
+      "runtime": {"device": "cpu", "dtype": "float64"},
+      "workers": 8
+    },
+    "otrr": {
+      "methods": ["relu_pnw_fullrisk"],
+      "runtime": {
+        "device": "cuda",
+        "dtype": "float32",
+        "multiprocessing_start_method": "spawn",
+        "dependency_start_method": "spawn",
+        "allow_cpu_ot_fallback": false
+      },
+      "resource_scheduler": {
+        "enabled": true,
+        "cpu_workers": 2,
+        "gpu_workers": 2,
+        "gpu_torch_threads": 1,
+        "gpu_batch_reference_seeds": true,
+        "reference_flush_every": 10
+      },
+      "workers": 2
+    }
+  },
+  "reps": 50,
+  "rotation_diagnostic": false,
+  "jacobian_diagnostic": false,
+  "relu_init_seed_by_rep": true,
+  "sample_sizes": [1000],
+  "seed_start": 20261001,
+  "x_rho": 0.0
+}

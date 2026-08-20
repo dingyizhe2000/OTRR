@@ -1,0 +1,49 @@
+# Local data and generated experiment outputs
+/data/
+/results/
+/results_analysis/*outputs*/
+/results_analysis/*cache*/
+/_generated_configs/
+/_archive_ignored/
+/tests/
+
+# Python/R/cache/checkpoint artifacts
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.analysis_deps/
+.mplconfig/
+.ipynb_checkpoints/
+build/
+dist/
+*.egg-info/
+*.pyc
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.npy
+*.npz
+*.log
+*.tmp
+*.sqlite
+*.sqlite3
+
+# Internal notes and agent/LLM prompts
+*CLINE*
+*cline*
+*agent*
+*Agent*
+*prompt*
+*Prompt*
+*workflow*
+*Workflow*
+notes/
+notes.md
+
+# OS/editor noise
+.DS_Store
+.Rhistory
+.vscode/
