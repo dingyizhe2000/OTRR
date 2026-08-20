@@ -50,7 +50,7 @@ environment:
 | pandas | 1.5.3 |
 
 The primary workstation used an AMD EPYC 7532 CPU, 512 GB RAM, and an NVIDIA
-RTX 3090 24 GB GPU. Additional linear-simulation jobs used NVIDIA A100 PCIe
+RTX 3090 24 GB GPU. Some linear-simulation jobs used NVIDIA A100 PCIe
 40 GB GPUs.
 
 The ASM and CW-CQR baselines use the R packages `asm` and `cqrReg`. Install R
