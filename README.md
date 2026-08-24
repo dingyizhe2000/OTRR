@@ -69,19 +69,24 @@ that directory. Otherwise, the bridge uses R's normal `.libPaths()`, including
 ## Reproduce the Paper Results
 
 Run the commands below from the repository root. The large fitted-state and
-inference bundles are distributed separately from the Git repository. Install
-the versioned, checksum-verified paper artifacts with
+inference bundles are not tracked in Git. Their versioned filenames, sizes,
+SHA-256 checksums, and extraction destinations are recorded in
+`paper_artifacts.json`.
+
+The artifacts are currently retained in a private GitHub release and therefore
+are not anonymously downloadable. Once a public artifact host is available,
+its URLs can be added to the manifest and the bundles can be installed with
 
 ```bash
 python download_paper_artifacts.py
 ```
 
-The artifact manifest is `paper_artifacts.json`. It records the release
-version, download URLs, compressed sizes, SHA-256 checksums, and extraction
-destinations. The downloader streams each asset, resumes partial downloads,
-verifies every checksum, and safely restores the three canonical directories
-under `results/`. Artifact version `v0.2.0` downloads 3.83 GB in total; allow
-at least 8 GB of free disk space for the download cache and extracted results.
+The downloader streams each asset, resumes partial downloads, verifies every
+checksum, and safely restores the three canonical directories under
+`results/`. Artifact version `v0.2.0` contains 3.83 GB of compressed data;
+allow at least 8 GB of free disk space for the download cache and extracted
+results. Until public URLs are added, the command fails explicitly rather than
+pretending that the private release is publicly accessible.
 To regenerate all empirical tables and figures from those frozen bundles, use
 `PYTHONPATH=src python reproduce_paper_outputs.py --project-root . --skip-build`.
 

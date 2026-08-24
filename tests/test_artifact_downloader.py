@@ -56,11 +56,12 @@ def test_missing_public_url_fails(tmp_path: Path) -> None:
 def test_public_manifest_is_complete_and_parts_sum_to_archive_size() -> None:
     manifest = json.loads((ROOT / "paper_artifacts.json").read_text())
     assert manifest["artifact_version"] == "v0.2.0"
+    assert manifest["availability"] == "private_release_pending_public_host"
     assert len(manifest["bundles"]) == 3
     for bundle in manifest["bundles"]:
         assert bundle["parts"]
         assert sum(int(part["size"]) for part in bundle["parts"]) == int(bundle["compressed_size"])
-        assert all(str(part["url"]).startswith("https://github.com/") for part in bundle["parts"])
+        assert all(part["url"] is None for part in bundle["parts"])
         assert len(str(bundle["sha256"])) == 64
 
 
