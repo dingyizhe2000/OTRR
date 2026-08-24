@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "otrank-paper"
-version = "0.2.0"
+version = "0.1.1"
 description = "Reproducibility code for OT-rank regression paper experiments."
 requires-python = ">=3.10"
 license = {file = "LICENSE"}

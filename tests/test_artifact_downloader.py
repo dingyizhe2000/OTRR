@@ -55,8 +55,9 @@ def test_missing_public_url_fails(tmp_path: Path) -> None:
 
 def test_public_manifest_is_complete_and_parts_sum_to_archive_size() -> None:
     manifest = json.loads((ROOT / "paper_artifacts.json").read_text())
-    assert manifest["artifact_version"] == "v0.2.0"
-    assert manifest["availability"] == "private_release_pending_public_host"
+    assert manifest["artifact_version"] is None
+    assert manifest["availability"] == "not_publicly_hosted"
+    assert manifest["release_url"] is None
     assert len(manifest["bundles"]) == 3
     for bundle in manifest["bundles"]:
         assert bundle["parts"]

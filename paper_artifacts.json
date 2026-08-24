@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "artifact_version": "v0.2.0",
-  "availability": "private_release_pending_public_host",
-  "release_url": "https://github.com/dingyizhe2000/OTRR/releases/tag/v0.2.0",
+  "artifact_version": null,
+  "availability": "not_publicly_hosted",
+  "release_url": null,
   "bundles": [
     {
       "name": "linear_n1000_p20_d10_final",
