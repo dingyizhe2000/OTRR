@@ -17,6 +17,14 @@ except Exception:  # pragma: no cover
     tl = None
 
 
+def _triton_jit(function):
+    """Apply ``triton.jit`` when available without breaking CPU imports."""
+
+    if triton is None:
+        return function
+    return triton.jit(function)
+
+
 def _require_triton() -> None:
     if triton is None or tl is None:
         raise ImportError("Triton is required for otrank.ot_maps.pnw_triton")
@@ -24,7 +32,7 @@ def _require_triton() -> None:
         raise RuntimeError("Triton PNW kernels require a CUDA device")
 
 
-@triton.jit
+@_triton_jit
 def _row_logsumexp_forward_kernel(
     x_ptr,
     z_ptr,
@@ -73,7 +81,7 @@ def _row_logsumexp_forward_kernel(
     tl.store(out_ptr + row, max_val + tl.log(sum_exp))
 
 
-@triton.jit
+@_triton_jit
 def _row_logsumexp_backward_kernel(
     x_ptr,
     z_ptr,
@@ -232,7 +240,7 @@ def triton_row_logsumexp(
     return _TritonRowLogsumexp.apply(x, z, v, eps_scale, int(block_m))
 
 
-@triton.jit
+@_triton_jit
 def _pnw_row_loss_forward_kernel(
     x_ptr,
     z_ptr,
@@ -300,7 +308,7 @@ def _pnw_row_loss_forward_kernel(
     tl.store(loss_ptr + row, row_loss)
 
 
-@triton.jit
+@_triton_jit
 def _pnw_row_loss_backward_kernel(
     x_ptr,
     z_ptr,
@@ -453,7 +461,7 @@ def triton_pnw_row_loss(
     return _TritonPNWRowLoss.apply(x, z, v, eps_scale, int(block_m))
 
 
-@triton.jit
+@_triton_jit
 def _pnw_row_loss_tiled_forward_kernel(
     x_ptr,
     z_ptr,
@@ -524,7 +532,7 @@ def _pnw_row_loss_tiled_forward_kernel(
     tl.store(loss_ptr + rows, row_loss, mask=row_mask)
 
 
-@triton.jit
+@_triton_jit
 def _pnw_row_loss_tiled_backward_kernel(
     x_ptr,
     z_ptr,
@@ -584,7 +592,7 @@ def _pnw_row_loss_tiled_backward_kernel(
             tl.atomic_add(grad_x_ptr + rows * stride_gxn + d * stride_gxd, grad_x, sem="relaxed", mask=row_mask)
 
 
-@triton.jit
+@_triton_jit
 def _reduce_partial_grad_v_kernel(
     partial_ptr,
     grad_v_ptr,
@@ -861,7 +869,7 @@ def triton_pnw_row_loss_tiled_backward_from_state(
     return grad_x, grad_v
 
 
-@triton.jit
+@_triton_jit
 def _cached_ab_row_matvec_kernel(
     mat_ptr,
     q_ptr,
@@ -884,7 +892,7 @@ def _cached_ab_row_matvec_kernel(
     tl.store(out_ptr + row, acc)
 
 
-@triton.jit
+@_triton_jit
 def _cached_ab_col_matvec_kernel(
     mat_ptr,
     q_ptr,
@@ -968,7 +976,7 @@ def triton_cached_ab_matvec(
     return out
 
 
-@triton.jit
+@_triton_jit
 def _cached_ab_implicit_add_kernel(
     res_ptr,
     target_ptr,

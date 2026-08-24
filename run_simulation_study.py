@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -24,6 +25,7 @@ PAPER_METHOD_KEYS = {
     "coordinatewise_huber_tau1p345",
     "radial_huber_tau1p345_sqrtd",
     "coordinatewise_asm_zero_intercept",
+    "cw_cqr_20levels",
     "mcqr_ot_lens",
     "mcqr_gaussian",
     "mcqr_hypercube",
@@ -43,6 +45,46 @@ PAPER_METHOD_KEYS = {
 
 def _safe_name(value: object) -> str:
     return re.sub(r"[^A-Za-z0-9_.=-]+", "_", str(value)).strip("_") or "simulation"
+
+
+def build_cw_cqr_protocol(config: dict, *, n_train: int, p: int, d: int) -> dict:
+    """Build the public CW-CQR handoff from the authoritative paper config."""
+
+    dgp = dict(config.get("dgp", {}))
+    ensemble = dict(config.get("ot_rank_ensemble", {}))
+    return {
+        "coefficient_generation": {
+            "name": str(dgp.get("name", "linear")),
+            "coef_style": str(dgp.get("coef_style", "gaussian")),
+            "mu_nonzero": int(dgp.get("mu_nonzero", 0)),
+            "mu_value": float(dgp.get("mu_value", 0.0)),
+            "singular_decay": float(dgp.get("singular_decay", 0.7)),
+            "x_center": bool(dgp.get("x_center", True)),
+        },
+        "formal_config": deepcopy(config),
+        "intercept": "zero intercept in formal simulation baselines",
+        "method_labels": list(config.get("paper_methods", config.get("methods", []))),
+        "rotation_convention": (
+            "Response rotations use the deterministic seed+10000 orthogonal matrix "
+            "and are mapped back before row-space metrics."
+        ),
+        "seed_convention": {
+            "seed_start": int(config.get("seed_start", 20261001)),
+            "rep_r_seed": f"{int(config.get('seed_start', 20261001))} + (rep_index-1)",
+            "reference_seed_start": int(
+                ensemble.get("reference_seed_start", 20260721)
+            ),
+        },
+        "target": {
+            "R": int(config["reps"]),
+            "n_train": int(n_train),
+            "p": int(p),
+            "d": int(d),
+            "noises": [str(item["label"]) for item in config["noises"]],
+            "cw_cqr_quantiles": "tau_l=l/21, l=1,...,20",
+        },
+        "x_center": bool(dgp.get("x_center", True)),
+    }
 
 
 NOISES = [
@@ -583,10 +625,32 @@ def main() -> None:
         dimensions = [{"p": int(v.split(",")[0]), "d": int(v.split(",")[1])} for v in args.dimension]
     else:
         dimensions = list(config["dimensions"])
-    staged = _stage_configs(
-        config,
-        requested_stage=args.stage,
-        requested_methods=args.method,
+    cw_cqr_section = dict(config.get("cw_cqr", {}))
+    cw_cqr_method = str(cw_cqr_section.get("method_id", "")) or None
+    available_methods = list(config.get("paper_methods", config.get("methods", [])))
+    if args.method:
+        unknown = sorted(set(args.method) - set(available_methods))
+        if unknown:
+            raise ValueError(f"Requested methods are absent from the paper config: {unknown}")
+    cw_cqr_stage_requested = bool(cw_cqr_method and args.stage == "cw_cqr")
+    run_cw_cqr = bool(
+        cw_cqr_method
+        and (args.stage is None or cw_cqr_stage_requested)
+        and (not args.method or cw_cqr_method in args.method)
+    )
+    main_requested = (
+        [method for method in args.method if method != cw_cqr_method]
+        if args.method
+        else None
+    )
+    staged = (
+        _stage_configs(
+            config,
+            requested_stage=None if cw_cqr_stage_requested else args.stage,
+            requested_methods=main_requested,
+        )
+        if not cw_cqr_stage_requested and (main_requested is None or main_requested)
+        else []
     )
 
     generated_root = ROOT / "_generated_configs"
@@ -620,11 +684,60 @@ def main() -> None:
                 )
                 cfg_path = generated_root / f"{experiment_name}_n{n_train}_p{dim['p']}_d{dim['d']}.json"
                 cfg_path.write_text(json.dumps(low, indent=2, sort_keys=True))
-                out = args.out_root
+                out = args.out_root / "main" if cw_cqr_section else args.out_root
                 cmd = [sys.executable, str(runner), "--config", str(cfg_path), "--out", str(out), "--workers", str(workers)]
                 print(" ".join(cmd))
                 if not args.dry_run:
                     subprocess.run(cmd, check=True)
+
+    if run_cw_cqr:
+        if len(sample_sizes) != 1 or len(dimensions) != 1:
+            raise ValueError("CW-CQR paper stage requires one sample size and one dimension")
+        n_train = int(sample_sizes[0])
+        p = int(dimensions[0]["p"])
+        d = int(dimensions[0]["d"])
+        protocol_root = args.out_root / "baselines"
+        protocol_root.mkdir(parents=True, exist_ok=True)
+        protocol_path = protocol_root / "simulation_protocol.json"
+        protocol_path.write_text(
+            json.dumps(
+                build_cw_cqr_protocol(config, n_train=n_train, p=p, d=d),
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        cqr_command = [
+            sys.executable,
+            "-m",
+            "otrank.experiments.run_cw_cqr_simulation",
+            "--config",
+            str(args.config),
+            "--handoff",
+            str(protocol_root),
+            "--out",
+            str(args.out_root / "cw_cqr"),
+            "--rep-start",
+            str(args.rep_start or 1),
+            "--rep-end",
+            str(args.rep_end or int(config["reps"])),
+            "--workers",
+            str(int(args.workers or cw_cqr_section.get("execution", {}).get("workers", 1))),
+        ]
+        for noise in args.noise or []:
+            cqr_command.extend(["--noise", str(noise)])
+        print("# stage=cw_cqr")
+        print("PYTHONPATH=src " + " ".join(cqr_command))
+        if not args.dry_run:
+            environment = dict(os.environ)
+            source = str(ROOT / "src")
+            environment["PYTHONPATH"] = source + (
+                os.pathsep + environment["PYTHONPATH"]
+                if environment.get("PYTHONPATH")
+                else ""
+            )
+            subprocess.run(cqr_command, check=True, env=environment)
 
 
 if __name__ == "__main__":

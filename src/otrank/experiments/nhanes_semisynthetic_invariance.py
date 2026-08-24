@@ -75,7 +75,8 @@ class ExperimentConfig:
     bh_level: float = 0.05
     derivative_ridge: float = 1e-10
     template_rule: str = "three_representation_strict_intersection"
-    cqr_r_library: str = "/private/tmp/cqr-r-lib"
+    cqr_r_library: str | None = None
+    cqr_quantile_levels: int = 20
     cqr_method: str = "ip"
     cqr_max_iterations: int = 1000
     cqr_tolerance: float = 1e-7
@@ -89,6 +90,141 @@ class ExperimentConfig:
     dgp_orientation: str = "Y=X@(kappa*B_star).T+xi"
     rotation_convention: str = "Y_Q=Y@Q.T; B_back=Q.T@B_Q"
     source_data_seed: int = 202608140000
+
+
+def _required(mapping: Mapping[str, Any], key: str, context: str) -> Any:
+    if key not in mapping:
+        raise ValueError(f"missing required config field: {context}.{key}")
+    return mapping[key]
+
+
+def resolve_cqr_r_library(
+    cli_value: str | None,
+    *,
+    environment: Mapping[str, str] | None = None,
+) -> str | None:
+    """Resolve the optional CW-CQR R library without machine-specific paths."""
+
+    env = os.environ if environment is None else environment
+    for value in (cli_value, env.get("CQR_R_LIB"), env.get("R_LIBS_USER")):
+        if value and str(value).strip():
+            return str(Path(str(value)).expanduser())
+    return None
+
+
+def load_experiment_config(
+    path: Path | str,
+    *,
+    repetitions: int | None = None,
+    workers: int | None = None,
+    r_library: str | None = None,
+    environment: Mapping[str, str] | None = None,
+) -> tuple[ExperimentConfig, dict[str, Any], dict[str, Any]]:
+    """Load and validate the authoritative semi-synthetic JSON config."""
+
+    config_path = Path(path)
+    try:
+        document = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot load experiment config {config_path}: {error}") from error
+    if not isinstance(document, dict):
+        raise ValueError("experiment config must be a JSON object")
+
+    for key in (
+        "experiment", "repetitions", "n", "p", "d", "methods", "noise",
+        "kappa", "rotations", "template", "multiple_testing", "inference",
+        "baselines", "otrr", "runtime", "source_data_seed",
+    ):
+        _required(document, key, "config")
+    if document["experiment"] != "nhanes_p43_d7_semisynthetic_orthogonal_invariance":
+        raise ValueError("unexpected experiment identifier")
+    if (int(document["n"]), int(document["p"]), int(document["d"])) != (8237, 43, 7):
+        raise ValueError("NHANES semi-synthetic config requires n=8237, p=43, d=7")
+    if tuple(document["methods"]) != METHODS + ("OTRR",):
+        raise ValueError(f"methods must be {list(METHODS + ('OTRR',))}")
+    if tuple(document["noise"]) != NOISES:
+        raise ValueError(f"noise must be {list(NOISES)}")
+    if tuple(float(value) for value in document["kappa"]) != KAPPAS:
+        raise ValueError(f"kappa must be {list(KAPPAS)}")
+
+    rotations = document["rotations"]
+    if not isinstance(rotations, dict) or rotations.get("identity") is not True:
+        raise ValueError("rotations.identity must be true")
+    if tuple(int(value) for value in _required(rotations, "haar_seeds", "rotations")) != ROTATION_SEEDS:
+        raise ValueError(f"rotation seeds must be {list(ROTATION_SEEDS)}")
+
+    testing = document["multiple_testing"]
+    inference = document["inference"]
+    template = document["template"]
+    baselines = document["baselines"]
+    otrr = document["otrr"]
+    runtime = document["runtime"]
+    for value, context in ((testing, "multiple_testing"), (inference, "inference"),
+                           (template, "template"), (baselines, "baselines"),
+                           (otrr, "otrr"), (runtime, "runtime")):
+        if not isinstance(value, dict):
+            raise ValueError(f"{context} must be an object")
+
+    bh_level = float(_required(testing, "q", "multiple_testing"))
+    if not 0.0 < bh_level < 1.0 or testing.get("procedure") != "Benjamini-Hochberg":
+        raise ValueError("multiple_testing must specify Benjamini-Hochberg with q in (0,1)")
+    if inference.get("vectorization") != COEFFICIENT_VECTORIZATION:
+        raise ValueError(f"inference.vectorization must be {COEFFICIENT_VECTORIZATION!r}")
+    if inference.get("covariance") != "analytic baseline influence-function/sandwich covariance":
+        raise ValueError("unexpected inference covariance convention")
+    if inference.get("intercept") != "mean intercept with centered slopes":
+        raise ValueError("unexpected inference intercept convention")
+    if int(_required(template, "expected_nonzero_contrasts", "template")) != 71:
+        raise ValueError("template.expected_nonzero_contrasts must be 71")
+
+    asm = _required(baselines, "cw_asm", "baselines")
+    cqr = _required(baselines, "cw_cqr", "baselines")
+    if not isinstance(asm, dict) or not isinstance(cqr, dict):
+        raise ValueError("baselines.cw_asm and baselines.cw_cqr must be objects")
+    reference_seeds = tuple(int(value) for value in _required(otrr, "reference_seeds", "otrr"))
+    required_otrr = {
+        "initializer": "CW-CQR", "K": 10, "m_ref": 65536, "epsilon": 0.1,
+        "steps": 500, "learning_rate": 0.0001,
+        "reference_convention": "same fixed unrotated cloud under all representations",
+        "covariance": "plugin_covariance",
+    }
+    for key, expected in required_otrr.items():
+        if otrr.get(key) != expected:
+            raise ValueError(f"otrr.{key} must be {expected!r}")
+    if reference_seeds != tuple(range(20260721, 20260731)):
+        raise ValueError("otrr.reference_seeds must be 20260721,...,20260730")
+    if runtime.get("multiprocessing") != "spawn" or int(runtime.get("blas_threads_per_worker", 0)) != 1:
+        raise ValueError("runtime must use spawn and one BLAS thread per worker")
+
+    final_repetitions = int(document["repetitions"] if repetitions is None else repetitions)
+    final_workers = int(runtime.get("workers") if workers is None else workers)
+    if final_repetitions < 1 or final_workers < 1:
+        raise ValueError("repetitions and workers must be positive")
+    resolved_library = resolve_cqr_r_library(r_library, environment=environment)
+    overrides = {
+        "repetitions": final_repetitions,
+        "workers": final_workers,
+        "r_library": resolved_library,
+    }
+    config = ExperimentConfig(
+        repetitions=final_repetitions,
+        workers=final_workers,
+        bh_level=bh_level,
+        derivative_ridge=float(_required(cqr, "derivative_ridge", "baselines.cw_cqr")),
+        template_rule=str(_required(template, "support", "template")),
+        cqr_r_library=resolved_library,
+        cqr_quantile_levels=int(_required(cqr, "quantile_levels", "baselines.cw_cqr")),
+        cqr_method=str(_required(cqr, "method", "baselines.cw_cqr")),
+        cqr_max_iterations=int(_required(cqr, "max_iterations", "baselines.cw_cqr")),
+        cqr_tolerance=float(_required(cqr, "tolerance", "baselines.cw_cqr")),
+        asm_max_iterations=int(_required(asm, "max_iterations", "baselines.cw_asm")),
+        asm_alt_iterations=int(_required(asm, "alternating_iterations", "baselines.cw_asm")),
+        vectorization=str(inference["vectorization"]),
+        intercept_convention=str(inference["intercept"]),
+        covariance_convention=str(inference["covariance"]),
+        source_data_seed=int(document["source_data_seed"]),
+    )
+    return config, document, overrides
 
 
 @dataclass(frozen=True)
@@ -385,7 +521,13 @@ def prepare_template(project_root: Path, output_root: Path) -> dict[str, Any]:
     return provenance
 
 
-def config_payload(config: ExperimentConfig, template_provenance: Mapping[str, Any]) -> dict[str, Any]:
+def config_payload(
+    config: ExperimentConfig,
+    template_provenance: Mapping[str, Any],
+    *,
+    source_config: Mapping[str, Any] | None = None,
+    runtime_overrides: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     scientific_config = asdict(config)
     # Worker count is operational rather than scientific. Excluding it from the
     # hash permits a verified run to resume with fewer workers after a reboot.
@@ -406,9 +548,17 @@ def config_payload(config: ExperimentConfig, template_provenance: Mapping[str, A
         "runtime_workers_requested": int(config.workers),
         "template_array_sha256": dict(template_provenance["array_sha256"]),
         "source_code_sha256": dict(template_provenance["source_code_sha256"]),
+        "source_config": dict(source_config or {}),
+        "runtime_overrides": dict(runtime_overrides or {}),
     }
     hashed = dict(payload)
     hashed.pop("runtime_workers_requested")
+    if "runtime_overrides" in hashed:
+        hashed["runtime_overrides"] = {
+            key: value
+            for key, value in hashed["runtime_overrides"].items()
+            if key != "workers"
+        }
     payload["config_sha256"] = sha256_bytes(canonical_json(hashed).encode("utf-8"))
     return payload
 
@@ -484,7 +634,7 @@ def _cqr_fit_and_covariance(
     fit_dir: Path,
     config: ExperimentConfig,
 ) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
-    tau = equally_spaced_quantiles(20)
+    tau = equally_spaced_quantiles(config.cqr_quantile_levels)
     fit = fit_cw_cqr(
         x,
         y,
@@ -814,6 +964,8 @@ def summarize(output_root: Path, config_sha256: str) -> tuple[pd.DataFrame, pd.D
 
 __all__ = [
     "ExperimentConfig",
+    "load_experiment_config",
+    "resolve_cqr_r_library",
     "TaskSpec",
     "METHODS",
     "NOISES",

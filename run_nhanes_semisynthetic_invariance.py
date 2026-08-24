@@ -13,7 +13,6 @@ import shlex
 import subprocess
 import sys
 import time
-from dataclasses import replace
 from pathlib import Path
 
 import pandas as pd
@@ -33,6 +32,7 @@ from otrank.experiments.nhanes_semisynthetic_invariance import (  # noqa: E402
     config_payload,
     dgp_seed,
     iter_tasks,
+    load_experiment_config,
     prepare_template,
     run_task,
     summarize,
@@ -42,13 +42,16 @@ from otrank.experiments.nhanes_semisynthetic_invariance import (  # noqa: E402
 DEFAULT_OUTPUT = PROJECT_ROOT / (
     "results/real_data/nhanes_p43_final/supplement/semisynthetic_invariance/baselines"
 )
+DEFAULT_CONFIG = CODE_ROOT / "configs/real_data_nhanes_semisynthetic_invariance.json"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--repetitions", type=int, default=10)
-    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--repetitions", type=int)
+    parser.add_argument("--workers", type=int)
+    parser.add_argument("--r-lib", help="CW-CQR R library override")
     parser.add_argument("--start-repetition", type=int, default=1)
     parser.add_argument("--end-repetition", type=int)
     parser.add_argument("--prepare-only", action="store_true")
@@ -58,19 +61,25 @@ def parse_args() -> argparse.Namespace:
 
 
 def environment_audit(config: ExperimentConfig) -> dict[str, object]:
+    r_environment = dict(os.environ)
+    r_environment["OTRANK_CQR_R_LIB"] = config.cqr_r_library or ""
     r_check = subprocess.run(
         [
             "Rscript",
             "-e",
             (
-                f'.libPaths(c("{config.cqr_r_library}",.libPaths())); '
-                'cat(as.character(packageVersion("asm"))," ",'
-                'as.character(packageVersion("cqrReg")),"\\n")'
+                'lib <- Sys.getenv("OTRANK_CQR_R_LIB"); '
+                'if (nzchar(lib)) .libPaths(c(lib,.libPaths())); '
+                'cat("LIBPATHS=",paste(.libPaths(),collapse="|"),"\\n",sep=""); '
+                'cat("ASM=",as.character(packageVersion("asm")),"\\n",sep=""); '
+                'cat("CQRREG=",as.character(packageVersion("cqrReg")),"\\n",sep=""); '
+                'cat("CQR_LIBRARY=",dirname(find.package("cqrReg")),"\\n",sep="")'
             ),
         ],
         check=True,
         capture_output=True,
         text=True,
+        env=r_environment,
     )
     import numpy as np
     import scipy
@@ -82,7 +91,12 @@ def environment_audit(config: ExperimentConfig) -> dict[str, object]:
         "numpy": np.__version__,
         "scipy": scipy.__version__,
         "torch": torch.__version__,
-        "r_packages": r_check.stdout.strip().splitlines()[-1],
+        "r_library_requested": config.cqr_r_library,
+        "r_environment": {
+            line.split("=", 1)[0]: line.split("=", 1)[1]
+            for line in r_check.stdout.strip().splitlines()
+            if "=" in line
+        },
         "workers": config.workers,
         "blas_threads": 1,
     }
@@ -156,17 +170,23 @@ def main() -> None:
         os.environ[name] = "1"
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    config = replace(
-        ExperimentConfig(),
-        repetitions=int(args.repetitions),
-        workers=int(args.workers),
+    config, source_config, runtime_overrides = load_experiment_config(
+        args.config,
+        repetitions=args.repetitions,
+        workers=args.workers,
+        r_library=args.r_lib,
     )
     provenance_path = output / "prepared/template_provenance.json"
     if provenance_path.exists():
         provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
     else:
         provenance = prepare_template(PROJECT_ROOT, output)
-    payload = config_payload(config, provenance)
+    payload = config_payload(
+        config,
+        provenance,
+        source_config=source_config,
+        runtime_overrides=runtime_overrides,
+    )
     config_path = output / "execution_config.json"
     if config_path.exists():
         existing = json.loads(config_path.read_text(encoding="utf-8"))
@@ -188,6 +208,8 @@ def main() -> None:
                     str(Path(__file__).resolve()),
                     "--output",
                     str(output),
+                    "--config",
+                    str(args.config.resolve()),
                     "--repetitions",
                     str(config.repetitions),
                     "--workers",
@@ -202,6 +224,8 @@ def main() -> None:
                     str(Path(__file__).resolve()),
                     "--output",
                     str(output),
+                    "--config",
+                    str(args.config.resolve()),
                     "--repetitions",
                     str(config.repetitions),
                     "--workers",
@@ -259,9 +283,9 @@ def main() -> None:
         summarize(output, config_sha256)
         return
 
-    end = int(args.end_repetition or args.repetitions)
+    end = int(args.end_repetition or config.repetitions)
     start = int(args.start_repetition)
-    if start < 1 or end > args.repetitions or start > end:
+    if start < 1 or end > config.repetitions or start > end:
         raise ValueError("invalid repetition range")
 
     run_phase(output, config, config_sha256, range(start, end + 1))

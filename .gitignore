@@ -5,7 +5,6 @@
 /results_analysis/*cache*/
 /_generated_configs/
 /_archive_ignored/
-/tests/
 
 # Python/R/cache/checkpoint artifacts
 __pycache__/

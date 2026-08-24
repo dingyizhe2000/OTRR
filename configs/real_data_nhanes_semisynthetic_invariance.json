@@ -17,6 +17,19 @@
     "support": "intersection of strict stable genus-vs-Other contrasts across Helmert and two rotations",
     "expected_nonzero_contrasts": 71
   },
+  "baselines": {
+    "cw_asm": {
+      "max_iterations": 65,
+      "alternating_iterations": 1
+    },
+    "cw_cqr": {
+      "quantile_levels": 20,
+      "method": "ip",
+      "max_iterations": 1000,
+      "tolerance": 1e-7,
+      "derivative_ridge": 1e-10
+    }
+  },
   "multiple_testing": {
     "family": "301 genus-vs-Other contrasts",
     "procedure": "Benjamini-Hochberg",
@@ -43,5 +56,6 @@
     "multiprocessing": "spawn",
     "blas_threads_per_worker": 1,
     "interim_summary_every_completed_tasks": 75
-  }
+  },
+  "source_data_seed": 202608140000
 }

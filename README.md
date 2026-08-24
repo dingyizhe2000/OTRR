@@ -33,6 +33,8 @@ dependencies in an environment of your choice:
 pip install -e .
 # Optional notebook environment
 pip install -e '.[paper]'
+# Development and test environment
+pip install -e '.[test]'
 ```
 
 The reported GPU experiments were run using the following software
@@ -67,17 +69,30 @@ that directory. Otherwise, the bridge uses R's normal `.libPaths()`, including
 ## Reproduce the Paper Results
 
 Run the commands below from the repository root. The large fitted-state and
-inference bundles are not tracked in Git; place them under `results/` before
-running the paper-output builders. To regenerate all empirical tables and
-figures from those bundles in one step, use
-`PYTHONPATH=src python reproduce_paper_outputs.py --project-root .`.
+inference bundles are distributed separately from the Git repository. Install
+the versioned, checksum-verified paper artifacts with
+
+```bash
+python download_paper_artifacts.py
+```
+
+The artifact manifest is `paper_artifacts.json`. It records the release
+version, download URLs, compressed sizes, SHA-256 checksums, and extraction
+destinations. The downloader streams each asset, resumes partial downloads,
+verifies every checksum, and safely restores the three canonical directories
+under `results/`. Artifact version `v0.2.0` downloads 3.83 GB in total; allow
+at least 8 GB of free disk space for the download cache and extracted results.
+To regenerate all empirical tables and figures from those frozen bundles, use
+`PYTHONPATH=src python reproduce_paper_outputs.py --project-root . --skip-build`.
 
 ### Linear simulation
 
-`configs/simulation_linear.json` is the configuration for the 50-repetition
-linear experiment. The first command reruns the estimators from scratch. The
-second is an independent workflow that rebuilds the canonical bundle, Tables
-3--4, and Figures S2.1--S2.2 from the retained results.
+`configs/simulation_linear.json` is the authoritative configuration for the
+50-repetition linear experiment. The first command reruns all paper estimators:
+LS, CW-Huber, Radial Huber, CW-ASM, CW-CQR, MCQR, and OTRR. It writes the
+ordinary simulation stage to `reproduced_results/linear/main`, the CW-CQR stage
+to `reproduced_results/linear/cw_cqr`, and their shared protocol to
+`reproduced_results/linear/baselines/simulation_protocol.json`.
 
 ```bash
 python run_simulation_study.py --config configs/simulation_linear.json \
@@ -85,6 +100,12 @@ python run_simulation_study.py --config configs/simulation_linear.json \
 PYTHONPATH=src python -m otrank.results_analysis.finalize_linear_simulation \
   --project-root . --output-dir results/simulation/linear_n1000_p20_d10_final
 ```
+
+The second command is a frozen-state finalizer, not an estimator rerun. It
+validates the retained canonical source artifacts and rebuilds Tables 3--4 and
+Figures S2.1--S2.2. `reproduce_paper_outputs.py` is the still lighter
+paper-output regeneration layer that invokes the finalizers for all three
+experiments.
 
 ### ReLU simulation
 
@@ -112,6 +133,18 @@ associated supplementary outputs. It does not refit the estimators.
 python run_real_data_experiment.py --config configs/main_real_data.json \
   --result-root results/real_data/nhanes_p43_final
 ```
+
+The supplementary NHANES semi-synthetic invariance experiment is a separate,
+resumable estimator rerun driven by its own authoritative JSON config:
+
+```bash
+PYTHONPATH=src python run_nhanes_semisynthetic_invariance.py \
+  --config configs/real_data_nhanes_semisynthetic_invariance.json
+```
+
+Use `--r-lib` to override the CW-CQR R library for this command. Otherwise the
+runner checks `CQR_R_LIB`, then `R_LIBS_USER`, and finally R's default
+`.libPaths()`.
 
 ## Fit OTRR on a New Dataset
 

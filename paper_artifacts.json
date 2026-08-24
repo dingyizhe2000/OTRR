@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "artifact_version": "v0.2.0",
+  "release_url": "https://github.com/dingyizhe2000/OTRR/releases/tag/v0.2.0",
+  "bundles": [
+    {
+      "name": "linear_n1000_p20_d10_final",
+      "archive_filename": "linear_n1000_p20_d10_final.tar.gz",
+      "compressed_size": 924057233,
+      "sha256": "7eca563c82b69c880ec082d14315ed78dd90ad3648b75bff82a7db7a7e2529f2",
+      "extraction_destination": "results/simulation/linear_n1000_p20_d10_final",
+      "required_paths": ["COMPLETE.marker", "metrics", "tables", "figures"],
+      "parts": [
+        {
+          "filename": "linear_n1000_p20_d10_final.tar.gz",
+          "url": "https://github.com/dingyizhe2000/OTRR/releases/download/v0.2.0/linear_n1000_p20_d10_final.tar.gz",
+          "size": 924057233,
+          "sha256": "7eca563c82b69c880ec082d14315ed78dd90ad3648b75bff82a7db7a7e2529f2"
+        }
+      ]
+    },
+    {
+      "name": "relu_n1000_p8_d4_final",
+      "archive_filename": "relu_n1000_p8_d4_final.tar.gz",
+      "compressed_size": 11111902,
+      "sha256": "0d17f5764a2da11ecd2e17798a6f04b076fe833b149dd63758804923c79ec8c7",
+      "extraction_destination": "results/simulation/relu_n1000_p8_d4_final",
+      "required_paths": ["COMPLETE.marker", "metrics", "tables"],
+      "parts": [
+        {
+          "filename": "relu_n1000_p8_d4_final.tar.gz",
+          "url": "https://github.com/dingyizhe2000/OTRR/releases/download/v0.2.0/relu_n1000_p8_d4_final.tar.gz",
+          "size": 11111902,
+          "sha256": "0d17f5764a2da11ecd2e17798a6f04b076fe833b149dd63758804923c79ec8c7"
+        }
+      ]
+    },
+    {
+      "name": "nhanes_p43_final",
+      "archive_filename": "nhanes_p43_final.tar.gz",
+      "compressed_size": 2894032938,
+      "sha256": "b143f0b7c5ba7ba112e6b984363e7f37b891642a0b5bc46f76a327ca3375720c",
+      "extraction_destination": "results/real_data/nhanes_p43_final",
+      "required_paths": ["COMPLETE.marker", "metrics", "tables"],
+      "parts": [
+        {
+          "filename": "nhanes_p43_final.tar.gz.part-00",
+          "url": "https://github.com/dingyizhe2000/OTRR/releases/download/v0.2.0/nhanes_p43_final.tar.gz.part-00",
+          "size": 1572864000,
+          "sha256": "82b969d454564030f839e652ff45920577925b5b6f399d28fafb15b8c58383da"
+        },
+        {
+          "filename": "nhanes_p43_final.tar.gz.part-01",
+          "url": "https://github.com/dingyizhe2000/OTRR/releases/download/v0.2.0/nhanes_p43_final.tar.gz.part-01",
+          "size": 1321168938,
+          "sha256": "5d0ac3bcd58d97c4f2412987dd4ed7d2b24df165c60151020180bac8f57ec1f6"
+        }
+      ]
+    }
+  ]
+}
