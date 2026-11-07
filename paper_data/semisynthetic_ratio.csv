@@ -1,0 +1,13 @@
+noise,kappa,method,data_provenance,average_intersection,average_union,ratio_of_averages,ratio_bootstrap_sd,bootstrap_draws,bootstrap_seed
+C,0.25,CW-ASM,retained_baseline_response,22.0,35.1,0.6267806267806267,0.0392713559331542,100000,20260820
+C,0.25,CW-CQR,retained_baseline_response,24.3,32.2,0.7546583850931676,0.0306217509773326,100000,20260820
+C,0.25,CW-Huber,retained_baseline_response,11.5,18.5,0.6216216216216216,0.0462237007149554,100000,20260820
+C,0.25,LS,retained_baseline_response,5.2,5.2,1.0,0.0,100000,20260820
+C,0.25,OTRR,seed_reconstructed_response,32.0,32.3,0.9907120743034056,0.0061155458086609,100000,20260820
+C,0.25,Radial Huber,retained_baseline_response,16.1,16.1,1.0,0.0,100000,20260820
+C,0.5,CW-ASM,retained_baseline_response,61.0,70.3,0.8677098150782362,0.024733159478279,100000,20260820
+C,0.5,CW-CQR,retained_baseline_response,61.7,66.6,0.9264264264264266,0.0105077917527513,100000,20260820
+C,0.5,CW-Huber,retained_baseline_response,54.4,60.1,0.9051580698835274,0.0165086911528609,100000,20260820
+C,0.5,LS,retained_baseline_response,25.4,25.4,1.0,0.0,100000,20260820
+C,0.5,OTRR,seed_reconstructed_response,66.7,66.8,0.9985029940119762,0.0015435716774829,100000,20260820
+C,0.5,Radial Huber,retained_baseline_response,54.6,54.6,1.0,0.0,100000,20260820

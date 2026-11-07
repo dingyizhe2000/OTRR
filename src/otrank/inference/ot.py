@@ -515,11 +515,15 @@ def _plugin_linear_components(
     )
     n, p = design.shape
     d = residual.shape[1]
-    if design.device.type == "mps":
-        design64 = design.cpu().double()
-        design_second_moment = design64.T @ design64 / float(n)
-    else:
-        design_second_moment = design.double().T @ design.double() / float(n)
+    # Residual construction preserves the fitted intercept convention. The
+    # translation-invariant slope expansion uses centered design and rank scores.
+    design64 = design.detach().cpu().double()
+    design_mean = design64.mean(dim=0, keepdim=True)
+    centered_design = design64 - design_mean
+    ranks64 = ranks.detach().cpu().double()
+    rank_mean = ranks64.mean(dim=0, keepdim=True)
+    centered_ranks = ranks64 - rank_mean
+    design_second_moment = centered_design.T @ centered_design / float(n)
     # Under standard column-major vec(B), vec(J B Sigma_X) is represented by
     # Sigma_X tensor J.
     hessian = np.kron(
@@ -529,7 +533,7 @@ def _plugin_linear_components(
     if l2_penalty:
         hessian = hessian + float(l2_penalty) * np.eye(d * p)
     case_scores = vec_coefficient_batch(
-        torch.einsum("nd,np->ndp", ranks, design)
+        torch.einsum("nd,np->ndp", centered_ranks, centered_design)
     )
     case_scores_np = case_scores.cpu().double().numpy()
     influence = influence_from_scores_and_hessian(
@@ -572,6 +576,9 @@ def _plugin_linear_components(
         "l2_penalty": float(l2_penalty),
         "intercept_mode": intercept_mode,
         "fixed_pilot_means": intercept_mode.lower() == "pilot",
+        "design_centering": "sample_mean",
+        "rank_centering": "sample_mean",
+        "score_convention": "centered_design_centered_rank",
         **map_diagnostics,
     }
     components = {
@@ -581,6 +588,9 @@ def _plugin_linear_components(
         "design_second_moment": design_second_moment.cpu().numpy(),
         "average_map_jacobian": average_jacobian.cpu().numpy(),
         "ranks": ranks.cpu().numpy(),
+        "centered_design": centered_design.numpy(),
+        "design_mean_removed": design_mean.numpy(),
+        "rank_mean_removed": rank_mean.numpy(),
         "residuals": residual.detach().cpu().numpy(),
     }
     return influence, diagnostics, components
@@ -610,7 +620,11 @@ def plugin_linear_influence(
     dual_u: torch.Tensor | None = None,
     dual_v: torch.Tensor | None = None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
-    """Return the OT-rank plug-in influence function for one reference cloud."""
+    """Return slope IFs using centered design/rank scores and fitted residuals.
+
+    ``intercept_mode`` controls residual construction, not score centering.
+    This is the rank-score plug-in, not a finite-temperature full Hessian.
+    """
 
     influence, diagnostics, _ = _plugin_linear_components(
         beta,

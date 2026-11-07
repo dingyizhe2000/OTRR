@@ -21,11 +21,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 
 from otrank.results_analysis.plot_linear_inference_95_99 import (
     build_figure as build_inference_figure,
 )
 from otrank.project_layout import code_root
+from otrank.results_analysis.paper_data import equivariance_cell, linear_point as current_linear_point
+from otrank.results_analysis.plot_linear_accuracy_equivariance import build_figure as build_equivariance_figure
 
 
 NOISES = ["A", "B", "C"]
@@ -220,6 +223,13 @@ def load_point_metrics(project: Path) -> tuple[pd.DataFrame, list[Path]]:
     cqr_states = sorted(cqr_path.parent.glob("noise_*/rep*/fit_and_inference.npz"))
     if len(cqr_states) != 150:
         raise ValueError(f"expected 150 CW-CQR states, found {len(cqr_states)}")
+    current = current_linear_point(project)
+    data = data.drop(columns=[column for column in data if "angle" in column or "fro_sin" in column])
+    data = data.merge(current[["noise", "method", "rep", "coef_error", "e_max"]],
+                      on=["noise", "method", "rep"], validate="one_to_one", suffixes=("", "_current"))
+    if not np.allclose(data.coef_error, data.coef_error_current, rtol=1e-12, atol=1e-14):
+        raise ValueError("retained point estimates do not match the current paper version")
+    data = data.drop(columns="coef_error_current")
     return data.sort_values(["noise", "method", "rep"]), [
         baseline_path,
         cqr_path,
@@ -228,12 +238,35 @@ def load_point_metrics(project: Path) -> tuple[pd.DataFrame, list[Path]]:
     ]
 
 
+def selected_inference_root(project: Path) -> Path:
+    """Select a completed version explicitly, retaining historical inputs."""
+    bundle = project / "results/simulation/linear_n1000_p20_d10_final"
+    selector = bundle / "config/active_inference.json"
+    if not selector.exists():
+        raise FileNotFoundError("Current centered inference selector is missing; run the documented migration, not a legacy fallback.")
+    config = json.loads(selector.read_text())
+    root = (bundle / config["root"]).resolve()
+    if not root.is_relative_to(bundle.resolve()) or not (root/"COMPLETE.marker").is_file():
+        raise ValueError("active inference must be a completed version inside the linear bundle")
+    audit = json.loads((root/"audit.json").read_text())
+    if (audit.get("inference_version") != config.get("version")
+            or audit.get("design_centering") != "sample_mean"
+            or audit.get("rank_centering") != "sample_mean"
+            or audit.get("new_artifacts") != 150):
+        raise ValueError("active centered inference metadata does not match the selected version")
+    return root
+
+
 def load_inference_metrics(project: Path) -> tuple[pd.DataFrame, list[Path]]:
-    path = (
-        project
-        / "results/simulation/linear_n1000_p20_d10_final/source/"
-        "paper_inference/inference_plot_data.csv"
-    )
+    covariance_root = selected_inference_root(project)
+    path = covariance_root / "metrics/inference_by_rep.csv"
+    if not path.exists():
+        if covariance_root.name != "otrr_inference":
+            raise FileNotFoundError(f"selected inference has no combined metrics: {path}")
+        path = project / (
+            "results/simulation/linear_n1000_p20_d10_final/source/"
+            "paper_inference/inference_plot_data.csv"
+        )
     data = pd.read_csv(path)
     _validate_grid(data, INFERENCE_METHODS, "inference metrics")
     required = [
@@ -245,6 +278,33 @@ def load_inference_metrics(project: Path) -> tuple[pd.DataFrame, list[Path]]:
     ]
     if not np.isfinite(data[required].to_numpy(float)).all():
         raise ValueError("inference metrics contain NaN or Inf")
+    if covariance_root.name != "otrr_inference":
+        for row in data.loc[data.method == "OTRR"].itertuples(index=False):
+            artifact = covariance_root / f"noise_{row.noise}/rep{row.rep:03d}_plugin_covariance.npz"
+            with np.load(artifact, allow_pickle=False) as z:
+                expected = {"artifact_kind": "centered_plugin_ensemble_reconstruction",
+                            "inference_method": "plugin_covariance", "design_centering": "sample_mean",
+                            "rank_centering": "sample_mean", "vectorization": "column-major vec(B)",
+                            "noise": row.noise, "rep": row.rep}
+                if any(key not in z or z[key].item() != value for key, value in expected.items()):
+                    raise ValueError(f"selected centered artifact metadata mismatch: {artifact}")
+                phi, covariance = z["estimated_ensemble_influence"], z["estimated_covariance"]
+                if phi.shape != (1000, 200) or covariance.shape != (200, 200):
+                    raise ValueError(f"selected centered artifact shape mismatch: {artifact}")
+                if not np.isfinite(phi).all() or not np.isfinite(covariance).all():
+                    raise ValueError(f"selected centered artifact is not finite: {artifact}")
+                centered_phi = phi-phi.mean(0)
+                if not np.allclose(covariance, centered_phi.T@centered_phi/len(phi), rtol=1e-10, atol=1e-12):
+                    raise ValueError(f"selected covariance does not match its saved IF: {artifact}")
+                se = np.sqrt(np.diag(covariance)/len(phi))
+                error = (z["estimate"]-z["truth"]).reshape(-1, order="F")
+                for level in (95, 99):
+                    quantile = norm.ppf((1+level/100)/2)
+                    length = float(2*quantile*se.mean())
+                    coverage = float(np.mean(np.abs(error)<=quantile*se))
+                    if (not np.isclose(length, getattr(row, f"avg_interval_length_{level}"), rtol=1e-10, atol=1e-12)
+                            or not np.isclose(coverage, getattr(row, f"coverage_{level}"), atol=1e-12, rtol=0)):
+                        raise ValueError(f"selected metrics do not match covariance and estimate: {artifact}")
     retained = ["noise", "rep", "method", *required]
     if "source" in data:
         retained.append("source")
@@ -259,10 +319,6 @@ def load_inference_metrics(project: Path) -> tuple[pd.DataFrame, list[Path]]:
 
         data["source"] = data["source"].map(portable_source)
 
-    covariance_root = (
-        project
-        / "results/simulation/linear_n1000_p20_d10_final/source/otrr_inference"
-    )
     covariance_artifacts = sorted(covariance_root.glob("noise_*/*"))
     expected_suffix_counts = {
         "_plugin_covariance.npz": 150,
@@ -329,10 +385,7 @@ def build_run_view(
         project
         / "results/simulation/linear_n1000_p20_d10_final/source/cw_cqr"
     )
-    covariance_root = (
-        project
-        / "results/simulation/linear_n1000_p20_d10_final/source/otrr_inference"
-    )
+    covariance_root = selected_inference_root(project)
 
     for _, point_row in point.sort_values(["noise", "method", "rep"]).iterrows():
         noise = str(point_row["noise"])
@@ -438,7 +491,7 @@ def write_table3_rows(summary: pd.DataFrame, path: Path) -> None:
             for method in POINT_METHODS
         )
         for noise in NOISES
-        for metric in ["coef_error", "max_angle_deg"]
+        for metric in ["coef_error"]
     }
     lines: list[str] = []
     for method in POINT_METHODS:
@@ -446,12 +499,10 @@ def write_table3_rows(summary: pd.DataFrame, path: Path) -> None:
         for noise in NOISES:
             row = indexed.loc[(noise, method)]
             coef = f"{row.coef_error_mean:.3f} ({row.coef_error_std:.3f})"
-            angle = f"{row.max_angle_deg_mean:.3f} ({row.max_angle_deg_std:.3f})"
+            equivariance = equivariance_cell(row.e_max_mean, row.e_max_std)
             if np.isclose(row.coef_error_mean, minima[(noise, "coef_error")], atol=5e-13):
                 coef = f"\\textbf{{{coef}}}"
-            if np.isclose(row.max_angle_deg_mean, minima[(noise, "max_angle_deg")], atol=5e-13):
-                angle = f"\\textbf{{{angle}}}"
-            cells.extend([coef, angle])
+            cells.extend([coef, equivariance])
         lines.append("        " + " & ".join(cells) + r"\\")
     path.write_text("\n".join([*lines, "\\hline"]) + "\n")
 
@@ -483,45 +534,7 @@ def write_table4_rows(summary: pd.DataFrame, path: Path) -> None:
 
 
 def build_accuracy_figure(data: pd.DataFrame) -> plt.Figure:
-    figure, axes = plt.subplots(2, 3, figsize=(18.0, 7.5), constrained_layout=True)
-    rng = np.random.default_rng(20260811)
-    metrics = [("coef_error", "Coefficient error"), ("max_angle_deg", "Max angle (degrees)")]
-    for column, noise in enumerate(NOISES):
-        block = data[data["noise"] == noise]
-        for row, (metric, label) in enumerate(metrics):
-            ax = axes[row, column]
-            for position, method in enumerate(POINT_METHODS):
-                values = block.loc[block["method"] == method, metric].to_numpy(float)
-                ax.boxplot(
-                    [values],
-                    positions=[position],
-                    widths=0.58,
-                    whis=1.5,
-                    patch_artist=True,
-                    showfliers=False,
-                    medianprops={"color": "#111111", "linewidth": 1.2},
-                    boxprops={"facecolor": COLORS[method], "edgecolor": "#333333", "linewidth": 0.8},
-                    whiskerprops={"color": "#555555", "linewidth": 0.8},
-                    capprops={"color": "#555555", "linewidth": 0.8},
-                )
-                jitter = rng.uniform(-0.16, 0.16, size=values.size)
-                ax.scatter(
-                    np.full(values.size, position) + jitter,
-                    values,
-                    s=10,
-                    color=COLORS[method],
-                    edgecolors="none",
-                    alpha=0.38,
-                    zorder=3,
-                )
-            ax.set_yscale("log")
-            ax.set_xticks(range(len(POINT_METHODS)), POINT_METHODS, rotation=30, ha="right")
-            ax.set_ylabel(label)
-            ax.grid(axis="y", color="#D9D9D9", linewidth=0.55, alpha=0.8)
-            ax.spines[["top", "right"]].set_visible(False)
-            if row == 0:
-                ax.set_title(f"Noise {noise}")
-    return figure
+    return build_equivariance_figure(data)
 
 
 def _manifest(paths: list[Path], project: Path) -> pd.DataFrame:
@@ -545,6 +558,10 @@ def main() -> int:
         "--output-dir",
         type=Path,
         default=Path("results/simulation/linear_n1000_p20_d10_final"),
+    )
+    parser.add_argument(
+        "--inference-only", action="store_true",
+        help="Rebuild inference outputs only; leave fits, point metrics and Figure S2.1 unchanged.",
     )
     parser.add_argument(
         "--manuscript-dir",
@@ -573,12 +590,52 @@ def main() -> int:
     for directory in [metrics_dir, summaries_dir, tables_dir, figures_dir, provenance_dir, config_dir]:
         directory.mkdir(parents=True, exist_ok=True)
 
+    if args.inference_only:
+        inference, _ = load_inference_metrics(project)
+        inference.to_csv(metrics_dir / "inference_by_rep.csv", index=False)
+        summary = summarize(inference, ["avg_interval_length_95", "coverage_95", "avg_interval_length_99", "coverage_99"])
+        summary.to_csv(summaries_dir / "inference_summary.csv", index=False)
+        write_table4_rows(summary, tables_dir / "table4_rows.tex")
+        figure = build_inference_figure(inference)
+        figure.savefig(figures_dir / "linear_inference_boxplots.pdf", bbox_inches="tight")
+        figure.savefig(figures_dir / "linear_inference_boxplots.png", dpi=350, bbox_inches="tight")
+        plt.close(figure)
+        root = selected_inference_root(project)
+        for row in inference.loc[inference.method == "OTRR"].itertuples(index=False):
+            rep_dir = output / f"runs/noise_{row.noise}/otrr/rep{row.rep:03d}"
+            result_path = rep_dir / "result.json"
+            if result_path.exists():
+                payload = json.loads(result_path.read_text())
+                payload["inference"] = _json_record(pd.Series(row._asdict()))
+                result_path.write_text(json.dumps(payload, indent=2)+"\n")
+                for name, source in {
+                    "plugin_covariance.npz": root / f"noise_{row.noise}/rep{row.rep:03d}_plugin_covariance.npz",
+                    "plugin_metrics.json": root / f"noise_{row.noise}/rep{row.rep:03d}_metrics.json",
+                    "reference_diagnostics.csv": root / f"noise_{row.noise}/rep{row.rep:03d}_reference_metrics_plugin_covariance.csv",
+                }.items():
+                    _relative_symlink(source, rep_dir / "artifacts" / name)
+        update = {"inference_version": root.name, "rows": len(inference),
+                  "source": str(root.relative_to(project)), "coefficient_fits_changed": False,
+                  "point_metrics_changed": False, "figure_s2_1_changed": False}
+        (provenance_dir / "centered_inference_update.json").write_text(json.dumps(update, indent=2)+"\n")
+        audit_path = output / "audit.json"
+        if audit_path.exists():
+            audit = json.loads(audit_path.read_text())
+            audit.update({"inference_version": root.name, "design_centering": "sample_mean",
+                          "rank_centering": "sample_mean"})
+            audit_path.write_text(json.dumps(audit, indent=2)+"\n")
+        if manuscript is not None:
+            shutil.copy2(tables_dir / "table4_rows.tex", manuscript / "tables/linear_inference_table_rows.tex")
+            shutil.copy2(figures_dir / "linear_inference_boxplots.pdf", manuscript / "figures/linear_inference_boxplots.pdf")
+        print(f"Rebuilt centered inference only from {root}")
+        return 0
+
     point, point_sources = load_point_metrics(project)
     inference, inference_sources = load_inference_metrics(project)
     point.to_csv(metrics_dir / "point_estimation_by_rep.csv", index=False)
     inference.to_csv(metrics_dir / "inference_by_rep.csv", index=False)
     run_inventory = build_run_view(point, inference, project, output)
-    point_summary = summarize(point, ["coef_error", "max_angle_deg"])
+    point_summary = summarize(point, ["coef_error", "e_max"])
     inference_summary = summarize(
         inference,
         ["avg_interval_length_95", "coverage_95", "avg_interval_length_99", "coverage_99"],
@@ -660,6 +717,7 @@ def main() -> int:
         "organized_run_rows": int(len(run_inventory)),
         "otrr": {"K": 50, "steps": 500, "m_ref": 524288, "epsilon": 0.1},
         "inference_method": "plugin_covariance",
+        "inference_version": selected_inference_root(project).name,
         "vectorization": "column-major vec(B)",
     }
     (output / "audit.json").write_text(json.dumps(audit, indent=2) + "\n")

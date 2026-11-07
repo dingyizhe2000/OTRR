@@ -1,0 +1,19 @@
+method,representation_1,representation_2,intersection,union,intersection_over_union
+LS,helmert,rotation_20260731,48,48,1.0
+LS,helmert,rotation_20260732,48,48,1.0
+LS,rotation_20260731,rotation_20260732,48,48,1.0
+Radial Huber,helmert,rotation_20260731,56,56,1.0
+Radial Huber,helmert,rotation_20260732,56,56,1.0
+Radial Huber,rotation_20260731,rotation_20260732,56,56,1.0
+CW-Huber,helmert,rotation_20260731,52,68,0.7647058823529411
+CW-Huber,helmert,rotation_20260732,56,68,0.8235294117647058
+CW-Huber,rotation_20260731,rotation_20260732,51,63,0.8095238095238095
+CW-ASM,helmert,rotation_20260731,54,66,0.8181818181818182
+CW-ASM,helmert,rotation_20260732,56,74,0.7567567567567568
+CW-ASM,rotation_20260731,rotation_20260732,58,72,0.8055555555555556
+CW-CQR,helmert,rotation_20260731,54,71,0.7605633802816901
+CW-CQR,helmert,rotation_20260732,59,71,0.8309859154929577
+CW-CQR,rotation_20260731,rotation_20260732,56,69,0.8115942028985508
+OTRR,helmert,rotation_20260731,71,72,0.9861111111111112
+OTRR,helmert,rotation_20260732,71,72,0.9861111111111112
+OTRR,rotation_20260731,rotation_20260732,71,71,1.0

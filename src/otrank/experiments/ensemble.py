@@ -8,13 +8,14 @@ from typing import Any
 
 import torch
 
-from otrank.data.noise import make_generator, random_orthogonal
+from otrank.data.rotations import replay_rotation
 from otrank.metrics import (
     centered_prediction_mse, coefficient_error, frobenius_angle, mean_bias,
     prediction_mae, prediction_mse, prediction_mse_per_dim,
     prediction_rmse_per_dim, prediction_space_angle, rotation_prediction_gap,
     rotation_prediction_mse_per_dim, rotation_prediction_rmse_per_dim,
     translation_adjusted_mse, weighted_sine_discrepancy,
+    rotation_coefficient_max_error,
 )
 
 from .core import _dtype_from_name, _make_simulation_from_config
@@ -108,10 +109,11 @@ def _resource_ensemble_row(
     device = torch.device("cpu")
     dtype = _dtype_from_name(dtype_name)
     sim = _make_simulation_from_config(config, seed=seed, noise=noise, device=device, dtype=dtype)
-    generator = make_generator(int(seed) + 10_000, device=device)
-    q = random_orthogonal(sim.y_train.shape[1], generator, device=device, dtype=dtype)
+    q = None
+    recorded_rotation = None
     base_label = _method_label(base_method)
     fits = []
+    native_rotated_fits = []
     rotated_back_fits = []
     for reference_index, reference_seed in enumerate(reference_seeds[: int(k)], 1):
         method = _resource_clone_ot_method(
@@ -120,9 +122,21 @@ def _resource_ensemble_row(
             reference_index=int(reference_index),
         )
         run_dir = _rep_dir(out_dir, config["data"], noise, method, int(rep_index))
+        job = json.loads((run_dir/"job_config.json").read_text())
+        spec = job.get("rotation_replay", config.get("rotation_replay"))
+        if not isinstance(spec, dict):
+            raise ValueError("Member rotation seed/runtime metadata are missing; do not rebuild a CUDA rotation on CPU.")
+        if spec.get("seed") != int(seed)+10000 or spec.get("dimension") != sim.y_train.shape[1]:
+            raise ValueError("member rotation metadata do not match this repetition")
+        if recorded_rotation is None:
+            recorded_rotation = spec
+            q = replay_rotation(spec, output_device=device)
+        elif spec != recorded_rotation:
+            raise ValueError("ensemble members have inconsistent rotation replay metadata")
         fit = _resource_load_linear_fit(run_dir / f"iteration_{int(iteration):03d}" / "state.pt", device=device)
         fit_rot = _resource_load_linear_fit(run_dir / "rotated" / f"iteration_{int(iteration):03d}" / "state.pt", device=device)
         fits.append(fit)
+        native_rotated_fits.append(fit_rot)
         from otrank.estimators.baselines import LinearModelFit
 
         rotated_back_fits.append(
@@ -164,6 +178,7 @@ def _resource_ensemble_row(
         "centered_prediction_mse": centered_prediction_mse(pred, sim.f_test),
         "mean_bias": mean_bias(pred, sim.f_test),
         "coef_error": coefficient_error(fit.coef, sim.coef),
+        "e_max": rotation_coefficient_max_error(fit.coef, _resource_mean_fit(native_rotated_fits, method="native_rotated_mean").coef, q),
         "coef_angle": frobenius_angle(fit.coef, sim.coef),
         "rotation_pred_gap": rotation_prediction_gap(pred, pred_rot_back),
         "rotation_pred_mse_per_dim": rotation_prediction_mse_per_dim(pred, pred_rot_back),

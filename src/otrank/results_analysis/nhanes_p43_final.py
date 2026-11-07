@@ -20,6 +20,8 @@ import numpy as np
 import pandas as pd
 import torch
 
+from otrank.results_analysis.paper_data import equivariance_cell, nhanes_equivariance, load_frame
+
 
 METHODS = ("LS", "Radial Huber", "CW-Huber", "CW-ASM", "CW-CQR", "OTRR")
 METHOD_IDS = {
@@ -482,9 +484,7 @@ def build_table5(
             ),
         ),
     }
-    angle = _angle_summary(
-        root, bootstrap_seed=bootstrap_seed, bootstrap_repetitions=bootstrap_repetitions
-    ).set_index("method")
+    equivariance = nhanes_equivariance().set_index("method")
     prediction = prediction.set_index("method")
     stability = stability.set_index("method")
     rows = []
@@ -494,8 +494,8 @@ def build_table5(
                 "method": method,
                 "mae": float(prediction.loc[method, "mae"]),
                 "mae_bootstrap_sd": float(prediction.loc[method, "mae_bootstrap_sd"]),
-                "max_angle_deg": float(angle.loc[method, "max_angle_deg"]),
-                "max_angle_bootstrap_sd_deg": float(angle.loc[method, "max_angle_bootstrap_sd_deg"]),
+                "e_max_mean": float(equivariance.loc[method, "e_max_mean"]),
+                "e_max_sd": float(equivariance.loc[method, "e_max_sd"]),
                 "average_95_genus_contrast_ci_length": ci_map[method][0],
                 "ci_length_fold_bootstrap_sd": ci_map[method][1],
                 "stable_set_intersection": int(stability.loc[method, "intersection"]),
@@ -503,44 +503,26 @@ def build_table5(
                 "stable_set_iou": float(stability.loc[method, "intersection_over_union"]),
             }
         )
-    fixed_root = root / "supplement/fixed_reference_diagnostic/results"
-    spectra_path = fixed_root / "principal_angle_spectra.csv"
-    comparison_path = fixed_root / "coupled_vs_unrotated_reference_comparison.csv"
-    if spectra_path.is_file() and comparison_path.is_file():
-        spectra = pd.read_csv(spectra_path)
-        max_column = sorted(column for column in spectra if column.startswith("angle_"))[-1]
-        fold_angles = spectra.groupby("fold")[max_column].mean().to_numpy()
-        fixed = dict(rows[-1])
-        fixed.update(
-            {
-                "method": "OTRR (fixed ref.)",
-                "max_angle_deg": float(spectra[max_column].mean()),
-                "max_angle_bootstrap_sd_deg": _fold_bootstrap_sd(
-                    fold_angles,
-                    seed=bootstrap_seed,
-                    repetitions=bootstrap_repetitions,
-                ),
-            }
-        )
-        rows[-1]["method"] = "OTRR (coupled ref.)"
-        rows.append(fixed)
-    return pd.DataFrame(rows)
+    table = pd.DataFrame(rows)
+    expected = load_frame("nhanes_summary.csv").set_index("method")
+    for row in table.itertuples(index=False):
+        for column in ["mae", "mae_bootstrap_sd", "average_95_genus_contrast_ci_length", "ci_length_fold_bootstrap_sd", "stable_set_intersection", "stable_set_union"]:
+            if not np.isclose(getattr(row, column), expected.loc[row.method, column], rtol=1e-12, atol=1e-14):
+                raise ValueError("retained NHANES summaries differ from the frozen paper version; recompute paired equivariance before combining new fits")
+    return table
 
 
 def _write_table5_tex(path: Path, table: pd.DataFrame) -> None:
     lines = [
         r"\begin{tabular}{lcccc}",
         r"\hline",
-        r"Method & MAE & Max angle & 95\% CI length & Stable-set IoU \\",
+        r"Method & MAE & $E_{\max}$ & 95\% CI length & Stable-set IoU \\",
         r"\hline",
     ]
     for row in table.itertuples(index=False):
-        if row.max_angle_deg < 0.001:
-            angle = r"$<0.001^\circ$ ($<0.001^\circ$)"
-        else:
-            angle = f"${row.max_angle_deg:.3f}^\\circ$ (${row.max_angle_bootstrap_sd_deg:.3f}^\\circ$)"
+        equivariance = equivariance_cell(row.e_max_mean, row.e_max_sd, threshold=1e-14)
         lines.append(
-            f"{row.method} & {row.mae:.4f} ({row.mae_bootstrap_sd:.4f}) & {angle} & "
+            f"{row.method} & {row.mae:.4f} ({row.mae_bootstrap_sd:.4f}) & {equivariance} & "
             f"{row.average_95_genus_contrast_ci_length:.4f} ({row.ci_length_fold_bootstrap_sd:.4f}) & "
             f"{row.stable_set_intersection}/{row.stable_set_union} \\\\"
         )

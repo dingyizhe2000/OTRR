@@ -354,6 +354,9 @@ def _run_one(
         method_name.startswith("ot_rank") or method_name == "relu_pnw_fullrisk"
     ) and "init_fit_path" not in method_params and init_fit_path is not None:
         method_params["init_fit_path"] = str(init_fit_path)
+    from otrank.data.rotations import rotation_spec
+    rotation_enabled = bool(config.get("rotation_diagnostic", True)) or bool(method_params.get("ot_rank_rotation_diagnostic", False))
+    recorded_rotation = rotation_spec(seed+10000, int(data_cfg["d"]), device, dtype) if rotation_enabled else None
     (fit_save_dir / "job_config.json").write_text(
         json.dumps(
             {
@@ -364,6 +367,8 @@ def _run_one(
                 "method": method,
                 "effective_method_params": method_params,
                 "data": data_cfg,
+                "rotation_replay": recorded_rotation,
+                "runtime": {"device": str(device), "dtype": str(dtype), "torch_version": torch.__version__},
             },
             indent=2,
             sort_keys=True,
@@ -459,6 +464,8 @@ def _run_one(
                 row["rotation_jacobian_full_rank_fraction"] = jacobian_angles["full_rank_fraction"]
                 row["rotation_jacobian_rank_mismatch_fraction"] = jacobian_angles["rank_mismatch_fraction"]
             if has_coef and hasattr(fit_rot, "coef"):
+                from otrank.metrics import rotation_coefficient_max_error
+                row["e_max"] = rotation_coefficient_max_error(row_fit.coef, fit_rot.coef, q)
                 coef_rot_back = q.T @ fit_rot.coef
                 response_max, response_fro_sin = _principal_angle_stats(row_fit.coef, coef_rot_back)
                 row["rotation_response_principal_angle_max"] = response_max
@@ -543,6 +550,8 @@ def _run_one(
                     row["rotation_principal_angle_max"] = pred_angle_max
                     row["rotation_principal_angle_fro_sin"] = pred_fro_sin
                     if hasattr(iter_fit, "coef") and hasattr(fit_rot, "coef"):
+                        from otrank.metrics import rotation_coefficient_max_error
+                        row["e_max"] = rotation_coefficient_max_error(iter_fit.coef, fit_rot.coef, q)
                         coef_rot_back = q.T @ fit_rot.coef
                         response_max, response_fro_sin = _principal_angle_stats(iter_fit.coef, coef_rot_back)
                         row["rotation_response_principal_angle_max"] = response_max

@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "paper_version": "centered_equivariance_v1",
+  "linear_inference_version": "centered_plugin_v1",
+  "equivariance_metric": "entrywise_max_abs",
+  "files": [
+    {
+      "file": "linear_point.csv",
+      "rows": 1050,
+      "bytes": 41733,
+      "columns": [
+        "noise",
+        "method",
+        "rep",
+        "seed",
+        "coef_error"
+      ]
+    },
+    {
+      "file": "linear_equivariance.csv",
+      "rows": 1050,
+      "bytes": 58428,
+      "columns": [
+        "noise",
+        "method",
+        "rep",
+        "e_max",
+        "reproduction_source",
+        "mixed_platform_supplement"
+      ]
+    },
+    {
+      "file": "linear_inference.csv",
+      "rows": 900,
+      "bytes": 54711,
+      "columns": [
+        "noise",
+        "method",
+        "rep",
+        "avg_interval_length_95",
+        "coverage_95",
+        "avg_interval_length_99",
+        "coverage_99"
+      ]
+    },
+    {
+      "file": "relu_prediction.csv",
+      "rows": 900,
+      "bytes": 69805,
+      "columns": [
+        "noise",
+        "method",
+        "rep",
+        "seed",
+        "prediction_rmse_per_dim",
+        "prediction_mae",
+        "runtime_sec"
+      ]
+    },
+    {
+      "file": "nhanes_equivariance.csv",
+      "rows": 60,
+      "bytes": 2337,
+      "columns": [
+        "method",
+        "fold",
+        "rotation_seed",
+        "e_max"
+      ]
+    },
+    {
+      "file": "nhanes_pairwise.csv",
+      "rows": 18,
+      "bytes": 1089,
+      "columns": [
+        "method",
+        "representation_1",
+        "representation_2",
+        "intersection",
+        "union",
+        "intersection_over_union"
+      ]
+    },
+    {
+      "file": "nhanes_predictors.csv",
+      "rows": 43,
+      "bytes": 762,
+      "columns": [
+        "predictor_index",
+        "predictor"
+      ]
+    },
+    {
+      "file": "semisynthetic_repetitions.csv",
+      "rows": 120,
+      "bytes": 10900,
+      "columns": [
+        "noise",
+        "kappa",
+        "repetition",
+        "method",
+        "data_provenance",
+        "tpr",
+        "fdr",
+        "intersection",
+        "union",
+        "iou"
+      ]
+    },
+    {
+      "file": "semisynthetic_ratio.csv",
+      "rows": 12,
+      "bytes": 1275,
+      "columns": [
+        "noise",
+        "kappa",
+        "method",
+        "data_provenance",
+        "average_intersection",
+        "average_union",
+        "ratio_of_averages",
+        "ratio_bootstrap_sd",
+        "bootstrap_draws",
+        "bootstrap_seed"
+      ]
+    },
+    {
+      "file": "nhanes_summary.csv",
+      "rows": 6,
+      "bytes": 767,
+      "columns": [
+        "method",
+        "mae",
+        "mae_bootstrap_sd",
+        "average_95_genus_contrast_ci_length",
+        "ci_length_fold_bootstrap_sd",
+        "stable_set_intersection",
+        "stable_set_union",
+        "stable_set_iou"
+      ]
+    }
+  ],
+  "scope": "Frozen paper metrics only; no participant-level data, coefficient states, Q matrices or raw IF arrays.",
+  "linear_pairing": "Retained historical pairs plus supplemental CPU reproductions. MCQR pools 30 historical and 20 supplemental CPU pairs per noise; calibration E_max differences reached 0.008319. Sources remain labeled; bitwise historical equivalence is not claimed.",
+  "rotation_replay": "Seeds are device-, dtype-, generator- and runtime-specific; no cross-device identity is claimed.",
+  "nhanes_uncertainty": "E_max SD is descriptive across 5 overlapping folds x 2 rotations. MAE and CI-length bootstrap SDs are retained summaries, not recomputed without private records.",
+  "semisynthetic": "Noise C, kappa 0.25/0.5, R=10; response provenance differs between retained baselines and reconstructed OTRR. Bootstrap ratio SDs are retained.",
+  "relu": "K=10,m_ref=131072,steps=25; all reps001-050 are the paper's descriptive sample, not a newly independent confirmatory sample."
+}

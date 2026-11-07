@@ -76,6 +76,9 @@ def _run_nhanes_final(config: dict, args: argparse.Namespace) -> None:
         "--bootstrap-seed",
         str(int(bootstrap.get("seed", 20260727))),
     ]
+    if not args.retained_source:
+        command = [sys.executable, "-m", "otrank.results_analysis.current_paper_outputs",
+                   "--study", "nhanes", "--project-root", str(ROOT), "--output-dir", str(result_root)]
     _run(command, dry_run=args.dry_run, env=_local_package_env())
 
 
@@ -86,6 +89,8 @@ def main() -> None:
     parser.add_argument("--result-root", type=Path)
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--retained-source", action="store_true",
+                        help="Explicitly rebuild from privately retained full source states instead of compact paper metrics.")
     args = parser.parse_args()
 
     config = json.loads(args.config.read_text())

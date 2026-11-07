@@ -91,6 +91,7 @@ def _rowspace_metrics(left: np.ndarray, right: np.ndarray) -> dict[str, float]:
     )
     angle_degrees = torch.rad2deg(angles)
     return {
+        "e_max": float(np.max(np.abs(left-right))),
         "rotation_coef_principal_angle_max_deg": float(angle_degrees.max()),
         "rotation_coef_principal_angle_mean_deg": float(angle_degrees.mean()),
         "rotation_coef_principal_angle_rms_deg": float(
@@ -136,6 +137,14 @@ def _complete_metrics(path: Path) -> dict[str, Any] | None:
     ]
     if not all(np.isfinite(float(value)) for value in numeric):
         return None
+    if "e_max" not in payload:
+        state = path.with_name("fit_and_inference.npz")
+        if not state.is_file():
+            raise ValueError("retained CW-CQR metrics need their paired coefficients to recover E_max without refitting")
+        with np.load(state, allow_pickle=False) as arrays:
+            payload["e_max"] = float(np.max(np.abs(arrays["beta_rotated_back"]-arrays["beta"])))
+    if not np.isfinite(payload["e_max"]):
+        raise ValueError("CW-CQR coefficient equivariance is not finite")
     return payload
 
 
@@ -457,7 +466,7 @@ def run(args: argparse.Namespace) -> None:
             print(
                 f"done noise={result['noise']} rep={result['rep']:03d} "
                 f"coef={result['coef_error']:.4f} "
-                f"angle={result['rotation_coef_principal_angle_max_deg']:.3f} "
+                f"E_max={result.get('e_max', float('nan')):.6g} "
                 f"wall={result['fit_wall_sec'] + result['rotated_fit_wall_sec']:.1f}s",
                 flush=True,
             )

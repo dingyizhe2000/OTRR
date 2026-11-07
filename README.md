@@ -1,8 +1,8 @@
-# Orthogonal Invariance in Multivariate-Response Regression via Optimal Transport Rank Regression
+# Optimal Transport Rank Regression for Robust Multivariate-Response Regression
 
-This repository contains the public reproducibility code for the paper
-"Orthogonal Invariance in Multivariate-Response Regression via Optimal
-Transport Rank Regression." It includes the optimal transport rank regression
+This repository contains reproducibility code for the paper
+"Optimal Transport Rank Regression for Robust Multivariate-Response
+Regression." It includes the optimal transport rank regression
 (OTRR) estimators, the linear and ReLU simulation workflows, inference
 utilities, and the NHANES oral-microbiome composition analysis.
 
@@ -55,7 +55,12 @@ The primary workstation used an AMD EPYC 7532 CPU, 512 GB RAM, and an NVIDIA
 RTX 3090 24 GB GPU. Some linear-simulation jobs used NVIDIA A100 PCIe
 40 GB GPUs.
 
-The ASM and CW-CQR baselines use the R packages `asm` and `cqrReg`. Install R
+The retained baseline workflows use `asm` 0.2.4 and `cqrReg` 1.2.1.
+The portable frozen-output pipeline has also been checked with Python 3.12.4,
+PyTorch 2.12.0, NumPy 2.2.6, SciPy 1.17.1, pandas 2.3.3 and Matplotlib 3.10.9.
+This is a postprocessing environment, not a claim of bitwise GPU-fit replay.
+
+The ASM and CW-CQR baselines require R and the R packages `asm` and `cqrReg`. Install R
 and then run:
 
 ```bash
@@ -68,78 +73,96 @@ that directory. Otherwise, the bridge uses R's normal `.libPaths()`, including
 
 ## Reproduce the Paper Results
 
-Run the commands below from the repository root. The large fitted-state and
-inference bundles are not tracked in Git. Their versioned filenames, sizes,
-SHA-256 checksums, and extraction destinations are recorded in
-`paper_artifacts.json`.
-
-The artifacts are currently retained in a private GitHub release and therefore
-are not anonymously downloadable. Once a public artifact host is available,
-its URLs can be added to the manifest and the bundles can be installed with
+Run the commands below from the repository root. The included `paper_data/`
+contains versioned simulation-repetition metrics and aggregate application
+results only. Default generation needs no GPU, R, private download, raw
+participant data, estimator training or OT solve. It selects the current
+centered plug-in inference and coefficient-equivariance results.
 
 ```bash
-python download_paper_artifacts.py
+python reproduce_paper_outputs.py --project-root .
 ```
 
-The downloader streams each asset, resumes partial downloads, verifies every
-checksum, and safely restores the three canonical directories under
-`results/`. Artifact version `v0.2.0` contains 3.83 GB of compressed data;
-allow at least 8 GB of free disk space for the download cache and extracted
-results. Until public URLs are added, the command fails explicitly rather than
-pretending that the private release is publicly accessible.
-To regenerate all empirical tables and figures from those frozen bundles, use
-`PYTHONPATH=src python reproduce_paper_outputs.py --project-root . --skip-build`.
+Use `--output-root <directory>` for a separate generated-results directory, or
+`--skip-build` to validate and index existing outputs without regenerating them.
+The notebook uses the same pipeline. `results/paper_output_index.json` uses
+semantic keys independent of manuscript table/figure numbering.
+
+Large historical fitted-state archives are optional private downloads.
+`paper_artifacts.json` identifies their scope explicitly: the old archive hashes
+do not include the later centering and coefficient-equivariance updates.
+`download_paper_artifacts.py` fails until an authorized host is configured; no
+download URL or new release is implied.
 
 ### Linear simulation
 
-`configs/simulation_linear.json` is the authoritative configuration for the
-50-repetition linear experiment. The first command reruns all paper estimators:
-LS, CW-Huber, Radial Huber, CW-ASM, CW-CQR, MCQR, and OTRR. It writes the
-ordinary simulation stage to `reproduced_results/linear/main`, the CW-CQR stage
-to `reproduced_results/linear/cw_cqr`, and their shared protocol to
-`reproduced_results/linear/baselines/simulation_protocol.json`.
+Regenerate the linear tables and boxplots, including interval lengths,
+coverages and entrywise coefficient equivariance errors, from all 50 retained
+repetitions per method/noise:
+
+```bash
+python reproduce_paper_outputs.py --project-root . --only linear
+```
+
+The manifest records pairing provenance, including MCQR's pooled historical and
+supplemental CPU pairs. Plots use actual observations, not display thresholds.
+To rerun estimator training instead:
 
 ```bash
 python run_simulation_study.py --config configs/simulation_linear.json \
   --out-root reproduced_results/linear
-PYTHONPATH=src python -m otrank.results_analysis.finalize_linear_simulation \
-  --project-root . --output-dir results/simulation/linear_n1000_p20_d10_final
 ```
 
-The second command is a frozen-state finalizer, not an estimator rerun. It
-validates the retained canonical source artifacts and rebuilds Tables 3--4 and
-Figures S2.1--S2.2. `reproduce_paper_outputs.py` is the still lighter
-paper-output regeneration layer that invokes the finalizers for all three
-experiments.
+Fresh fits are separate from frozen paper-output reproduction. This training
+command does not run the full K=50 covariance study or import new fits into the
+paper data. A matching-data inference/analysis step is required; generic API
+solver defaults are not the paper's numerical protocol.
+
+For maintainers with full retained IF bundles predating the covariance correction,
+rebuild the 150 linear OTRR inference artifacts without refitting or re-solving OT:
+
+```bash
+PYTHONPATH=src python -m otrank.results_analysis.recenter_linear_inference \
+  --project-root . --activate
+PYTHONPATH=src python -m otrank.results_analysis.finalize_linear_simulation \
+  --project-root . --inference-only
+```
+
+This creates the immutable `inference_versions/centered_plugin_v1` directory,
+preserves the original artifacts and paper outputs, and records the active
+version in `config/active_inference.json`. The migration exploits the retained
+common-design Kronecker IF structure, with an explicit numerical reconstruction
+tolerance; it does not reproduce the original GPU random clouds. The retained
+finalizer uses the selected version; the default compact pipeline uses already
+corrected CSVs. A completed
+version is not overwritten by rerunning the migration.
 
 ### ReLU simulation
 
-`configs/simulation_relu.json` contains three execution stages for the
-50-repetition ReLU experiment: classical baselines, CW-CQR, and
-CW-CQR-initialized OTRR. The first command reruns all stages. The second is an
-independent workflow that rebuilds the canonical ReLU bundle and Table S2.1
-from the retained results.
+Regenerate the ReLU prediction table from the 50 retained repetitions per
+method/noise. To retrain instead, use the separate config-driven command:
 
 ```bash
+python reproduce_paper_outputs.py --project-root . --only relu
+# Estimator training, not needed for frozen-result reproduction:
 python run_simulation_study.py --config configs/simulation_relu.json \
   --out-root reproduced_results/relu
-PYTHONPATH=src python -m otrank.results_analysis.finalize_relu_simulation \
-  --project-root . --output-dir results/simulation/relu_n1000_p8_d4_final
 ```
 
 ### NHANES real-data application
 
-Place the retained fitted states and inference artifacts under
-`results/real_data/nhanes_p43_final/source/`. The following command validates
-these artifacts and rebuilds the cross-validation summaries, Table 5, and the
-associated supplementary outputs. It does not refit the estimators.
+Regenerate the NHANES table, pairwise stability and supplementary semi-synthetic
+table from aggregate/fold-level metrics. No participant records are included.
 
 ```bash
-python run_real_data_experiment.py --config configs/main_real_data.json \
-  --result-root results/real_data/nhanes_p43_final
+python reproduce_paper_outputs.py --project-root . --only nhanes
 ```
 
-The supplementary NHANES semi-synthetic invariance experiment is a separate,
+`run_real_data_experiment.py` also defaults to the compact frozen metrics.
+Its explicit `--retained-source` option requires the full privately retained
+states; it does not constitute a one-command full NHANES OTRR refit workflow.
+
+The supplementary NHANES semi-synthetic estimator experiment is a separate,
 resumable estimator rerun driven by its own authoritative JSON config:
 
 ```bash
@@ -277,7 +300,9 @@ The primary OTRR inference API is `plugin_covariance`. It uses the plug-in
 Hessian from the asymptotic-normality theorem:
 
 ```text
-H_plugin = kron(design second moment, mean OT-map Jacobian)
+X_c = X - mean(X)
+T_c = T - mean(T)
+H_plugin = kron(X_c.T @ X_c / n, mean OT-map Jacobian)
 ```
 
 with the fitted-rank observation-level score
@@ -285,12 +310,20 @@ with the fitted-rank observation-level score
 ```math
 \widehat\psi_i
 =
-\mathrm{vec}\{\widehat T(\widehat\xi_i)X_i^\top\},
+\mathrm{vec}\{(\widehat T(\widehat\xi_i)-\bar T)(X_i-\bar X)^\top\},
 \qquad
 \widehat{\mathrm{IF}}_i
 =
 \widehat H^{-1}(\widehat\psi_i-\bar\psi).
 ```
+
+The fitted residual/intercept convention is preserved separately from score
+centering. Schema-v6 direct-solve artifacts record both centering conventions,
+so uncentered artifacts cannot be silently resumed as centered ones. This is
+the rank-score plug-in approximation; it does not substitute the full Hessian
+of the fixed-temperature raw objective. Archived IF reconstructions have a
+separate artifact kind and retain the original dual diagnostics without
+claiming new dual solves.
 
 ### Case-weight influence covariance
 

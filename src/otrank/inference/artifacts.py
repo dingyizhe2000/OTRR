@@ -14,7 +14,7 @@ import numpy as np
 from otrank.vectorization import COEFFICIENT_VECTORIZATION, require_vectorization
 
 
-PLUGIN_COVARIANCE_ARTIFACT_SCHEMA_VERSION = 5
+PLUGIN_COVARIANCE_ARTIFACT_SCHEMA_VERSION = 6
 PLUGIN_COVARIANCE_AGGREGATE_SCHEMA_VERSION = 1
 PLUGIN_COVARIANCE_AGGREGATE_KIND = "plugin_covariance_aggregate"
 PLUGIN_COVARIANCE_METHOD = "plugin_covariance"
@@ -41,6 +41,8 @@ _CONFIG_KEYS = (
     "device_type",
     "compute_dtype",
     "intercept_mode",
+    "design_centering",
+    "rank_centering",
     "n_train",
     "predictor_dimension",
     "response_dimension",
@@ -173,6 +175,8 @@ def plugin_covariance_config(
         "device_type": str(device_type),
         "compute_dtype": str(compute_dtype),
         "intercept_mode": str(intercept_mode),
+        "design_centering": "sample_mean",
+        "rank_centering": "sample_mean",
         "n_train": int(n_train),
         "predictor_dimension": int(predictor_dimension),
         "response_dimension": int(response_dimension),
@@ -220,6 +224,8 @@ def _validate_config_values(config: Mapping[str, Any]) -> None:
         raise ValueError("inference config does not use plugin_covariance")
     if str(config["dual_definition"]) != PLUGIN_DUAL_DEFINITION:
         raise ValueError("inference config does not reconstruct the final-coefficient dual")
+    if config["design_centering"] != "sample_mean" or config["rank_centering"] != "sample_mean":
+        raise ValueError("plug-in slope inference requires sample-centered design and ranks")
     tolerance = float(config["dual_tolerance"])
     if not math.isfinite(tolerance) or tolerance <= 0.0:
         raise ValueError("dual_tolerance must be finite and positive")

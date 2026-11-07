@@ -325,6 +325,7 @@ def _write_summary_from_rows(rows: list[dict[str, Any]], out_path: Path) -> None
         "centered_prediction_mse",
         "mean_bias",
         "coef_error",
+        "e_max",
         "coef_angle",
         "jacobian_estimation_rmse_per_entry",
         "rotation_pred_gap",

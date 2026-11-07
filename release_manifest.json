@@ -1,0 +1,481 @@
+{
+  "schema_version": 1,
+  "paper_version": "centered_equivariance_v1",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 590,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 35149,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "README.md",
+      "bytes": 14182,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "RELEASE_SCOPE.md",
+      "bytes": 1973,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "configs/main_real_data.json",
+      "bytes": 1536,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "configs/real_data_nhanes_semisynthetic_invariance.json",
+      "bytes": 1829,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "configs/simulation_linear.json",
+      "bytes": 4407,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "configs/simulation_relu.json",
+      "bytes": 4593,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "download_paper_artifacts.py",
+      "bytes": 7006,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "notebooks/reproduce_paper_results.ipynb",
+      "bytes": 4415,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "paper_artifacts.json",
+      "bytes": 2510,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "paper_data/linear_equivariance.csv",
+      "bytes": 58428,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/linear_inference.csv",
+      "bytes": 54711,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/linear_point.csv",
+      "bytes": 41733,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/manifest.json",
+      "bytes": 3852,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/nhanes_equivariance.csv",
+      "bytes": 2337,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/nhanes_pairwise.csv",
+      "bytes": 1089,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/nhanes_predictors.csv",
+      "bytes": 762,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/nhanes_summary.csv",
+      "bytes": 767,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/relu_prediction.csv",
+      "bytes": 69805,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/semisynthetic_ratio.csv",
+      "bytes": 1275,
+      "role": "paper_metric"
+    },
+    {
+      "path": "paper_data/semisynthetic_repetitions.csv",
+      "bytes": 10900,
+      "role": "paper_metric"
+    },
+    {
+      "path": "pyproject.toml",
+      "bytes": 720,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "reproduce_paper_outputs.py",
+      "bytes": 379,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "run_nhanes_semisynthetic_invariance.py",
+      "bytes": 10844,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "run_real_data_experiment.py",
+      "bytes": 3672,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "run_simulation_study.py",
+      "bytes": 35884,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/__init__.py",
+      "bytes": 489,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/api.py",
+      "bytes": 9555,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/data/__init__.py",
+      "bytes": 584,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/data/download.py",
+      "bytes": 1426,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/data/noise.py",
+      "bytes": 7589,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/data/rotations.py",
+      "bytes": 2325,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/data/sim.py",
+      "bytes": 11381,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/__init__.py",
+      "bytes": 2596,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/baselines.py",
+      "bytes": 6172,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/comparison.py",
+      "bytes": 19742,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/cw_cqr.py",
+      "bytes": 7520,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/cw_cqr_bridge.py",
+      "bytes": 9581,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/fit_cw_cqr.R",
+      "bytes": 2658,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/neural_baselines.py",
+      "bytes": 17648,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/neural_pnw.py",
+      "bytes": 23009,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/penalized_cv.py",
+      "bytes": 4028,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/penalized_linear.py",
+      "bytes": 5005,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/pnw_fullrisk.py",
+      "bytes": 21531,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/__init__.py",
+      "bytes": 64,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/core.py",
+      "bytes": 27431,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/ensemble.py",
+      "bytes": 10244,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/layout.py",
+      "bytes": 12855,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/monitoring.py",
+      "bytes": 9143,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/nhanes_semisynthetic_invariance.py",
+      "bytes": 41160,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/run_cw_cqr_simulation.py",
+      "bytes": 20685,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/run_simulation.py",
+      "bytes": 7883,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/experiments/scheduling.py",
+      "bytes": 46156,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/__init__.py",
+      "bytes": 4390,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/artifacts.py",
+      "bytes": 22202,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/asm.py",
+      "bytes": 6586,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/centering.py",
+      "bytes": 4054,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/covariance.py",
+      "bytes": 14950,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/implicit.py",
+      "bytes": 8675,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/linear.py",
+      "bytes": 9253,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/ot.py",
+      "bytes": 34964,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/vectorization.py",
+      "bytes": 129,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/inference/wald.py",
+      "bytes": 4510,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/metrics/__init__.py",
+      "bytes": 1238,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/metrics/angles.py",
+      "bytes": 5706,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/metrics/errors.py",
+      "bytes": 1563,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/metrics/jacobian.py",
+      "bytes": 3742,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/metrics/rotation.py",
+      "bytes": 1613,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/ot_maps/__init__.py",
+      "bytes": 646,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/ot_maps/base.py",
+      "bytes": 1633,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/ot_maps/pnw.py",
+      "bytes": 39641,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/ot_maps/pnw_triton.py",
+      "bytes": 37735,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/ot_maps/reference.py",
+      "bytes": 4159,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/project_layout.py",
+      "bytes": 769,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/real_data/__init__.py",
+      "bytes": 69,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/real_data/nhanes_cw_cqr_protocol.py",
+      "bytes": 10111,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/real_data/nhanes_oral_baselines.py",
+      "bytes": 21227,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/real_data/nhanes_oral_cw_cqr.py",
+      "bytes": 14730,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/real_data/preprocessing.py",
+      "bytes": 6646,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/__init__.py",
+      "bytes": 72,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/compare_nhanes_semisynthetic_otrr_fixedref.py",
+      "bytes": 14179,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/current_paper_outputs.py",
+      "bytes": 5519,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/finalize_linear_simulation.py",
+      "bytes": 32449,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/finalize_relu_simulation.py",
+      "bytes": 16645,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/nhanes_p43_final.py",
+      "bytes": 32037,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/paper_data.py",
+      "bytes": 4140,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/plot_linear_accuracy_equivariance.py",
+      "bytes": 3000,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/plot_linear_inference_95_99.py",
+      "bytes": 6132,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/recenter_linear_inference.py",
+      "bytes": 13837,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/results_analysis/reproduce_paper_outputs.py",
+      "bytes": 3553,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/vectorization.py",
+      "bytes": 10301,
+      "role": "code_or_documentation"
+    },
+    {
+      "path": "release_manifest.json",
+      "role": "file_inventory"
+    }
+  ],
+  "exclusions": [
+    "raw participant data",
+    "model/IF checkpoints",
+    "historical or exploratory results",
+    "archives",
+    "local audits and test logs",
+    "development tests",
+    "credentials",
+    "caches"
+  ],
+  "metric_scope": "Ten explicit CSVs contain simulation-repetition or aggregate/fold-level metrics only."
+}
