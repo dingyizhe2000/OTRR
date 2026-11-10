@@ -10,7 +10,7 @@ import pandas as pd
 
 from otrank.project_layout import code_root
 
-PAPER_VERSION = "centered_equivariance_v1"
+PAPER_VERSION = "linear_free_intercept_v2"
 FILES = {
     "linear_point.csv", "linear_equivariance.csv", "linear_inference.csv",
     "relu_prediction.csv", "nhanes_summary.csv", "nhanes_equivariance.csv",
@@ -34,8 +34,9 @@ def load_frame(name: str, project: Path | None = None) -> pd.DataFrame:
     manifest = json.loads(path.read_text())
     if (manifest.get("paper_version") != PAPER_VERSION
             or manifest.get("linear_inference_version") != "centered_plugin_v1"
+            or manifest.get("linear_baseline_version") != "joint_intercept_original_cutoffs_v1"
             or manifest.get("equivariance_metric") != "entrywise_max_abs"):
-        raise ValueError("paper data do not select the current centered/equivariance version")
+        raise ValueError("paper data do not select the current inference and linear-baseline versions")
     records = manifest.get("files", [])
     if len(records) != len(FILES) or {entry["file"] for entry in records} != FILES:
         raise ValueError("paper data inventory is not the explicit current-paper whitelist")

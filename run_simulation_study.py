@@ -21,6 +21,9 @@ DEFAULT_CONFIG = ROOT / "configs" / "simulation_linear.json"
 PAPER_DIMENSIONS = {(20, 10)}
 PAPER_SAMPLE_SIZES = {500, 1000}
 PAPER_METHOD_KEYS = {
+    "ls_free_intercept",
+    "coordinatewise_huber_free_intercept",
+    "radial_huber_free_intercept",
     "zero_intercept_ols",
     "coordinatewise_huber_tau1p345",
     "radial_huber_tau1p345_sqrtd",
@@ -62,7 +65,7 @@ def build_cw_cqr_protocol(config: dict, *, n_train: int, p: int, d: int) -> dict
             "x_center": bool(dgp.get("x_center", True)),
         },
         "formal_config": deepcopy(config),
-        "intercept": "zero intercept in formal simulation baselines",
+        "intercept": "CW-CQR uses quantile-specific nuisance intercepts; only common slopes are compared",
         "method_labels": list(config.get("paper_methods", config.get("methods", []))),
         "rotation_convention": (
             "Response rotations use the deterministic seed+10000 orthogonal matrix "
@@ -304,6 +307,19 @@ def _methods(config: dict) -> list[dict]:
     asm_response_workers = int(config.get("asm_response_workers", 1))
     asm_numeric_threads = int(config.get("asm_numeric_threads", 1))
     base = {
+        **{
+            label: {
+                "label": label,
+                "name": "linear_free_intercept",
+                "params": {"loss": loss, "ridge": 1e-8, "max_iter": 80, "tol": 1e-7,
+                           "tau_multiplier": 1.345},
+            }
+            for label, loss in (
+                ("ls_free_intercept", "ols"),
+                ("coordinatewise_huber_free_intercept", "cw_huber"),
+                ("radial_huber_free_intercept", "radial_huber"),
+            )
+        },
         "zero_intercept_ols": {"label": "zero_intercept_ols", "name": "zero_intercept_ols", "params": {"ridge": 1e-8}},
         "coordinatewise_huber_tau1p345": {
             "label": "coordinatewise_huber_tau1p345",

@@ -51,17 +51,17 @@
     }
   },
   "methods": [
-    "zero_intercept_ols",
-    "coordinatewise_huber_tau1p345",
-    "radial_huber_tau1p345_sqrtd",
+    "ls_free_intercept",
+    "coordinatewise_huber_free_intercept",
+    "radial_huber_free_intercept",
     "coordinatewise_asm_zero_intercept",
     "mcqr_ot_lens",
     "ot_rank_asm_init"
   ],
   "paper_methods": [
-    "zero_intercept_ols",
-    "coordinatewise_huber_tau1p345",
-    "radial_huber_tau1p345_sqrtd",
+    "ls_free_intercept",
+    "coordinatewise_huber_free_intercept",
+    "radial_huber_free_intercept",
     "coordinatewise_asm_zero_intercept",
     "cw_cqr_20levels",
     "mcqr_ot_lens",

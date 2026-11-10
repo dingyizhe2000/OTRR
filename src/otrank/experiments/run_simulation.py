@@ -28,6 +28,7 @@ for _env_name, _env_value in _NUMERIC_THREAD_ENV_DEFAULTS.items():
 
 _PAPER_NOISE_LABELS = {"A", "B", "C"}
 _PAPER_METHOD_NAMES = {
+    "linear_free_intercept",
     "zero_intercept_ols",
     "coordinatewise_huber",
     "radial_huber",
@@ -42,6 +43,9 @@ _PAPER_METHOD_NAMES = {
     "relu_coordinatewise_cqr",
 }
 _PAPER_METHOD_LABELS = {
+    "ls_free_intercept",
+    "coordinatewise_huber_free_intercept",
+    "radial_huber_free_intercept",
     "zero_intercept_ols",
     "coordinatewise_huber_tau1p345",
     "radial_huber_tau1p345_sqrtd",

@@ -283,13 +283,14 @@ def _gmres_matrix_free(
     matvec_returns_projected: bool = False,
     check_every: int = 5,
 ) -> torch.Tensor:
-    """Small fixed-iteration GMRES solver for the implicit Sinkhorn backend.
+    """Small iteration-capped GMRES solver for the implicit Sinkhorn backend.
 
-    This variant intentionally avoids host synchronization in the hot loop.  It
-    does not recompute the full residual with an additional matvec at every
-    iteration; the final iterate is obtained from the small Arnoldi least-squares
-    problem after ``max_iter`` steps.  The ``tol`` argument is kept for API
-    compatibility with earlier checkpoints/configs.
+    With positive ``check_every`` and ``tol``, check the relative Arnoldi
+    least-squares residual every ``check_every`` steps and at the iteration cap,
+    stopping early when it is at most ``tol``.  These checks synchronize with
+    the host but do not use an additional matvec to recompute the full residual.
+    Nonpositive ``check_every`` or ``tol`` disables early stopping.  Returning
+    at the iteration cap does not certify that the tolerance was attained.
     """
 
     iters = max(1, int(max_iter))

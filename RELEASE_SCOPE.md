@@ -24,6 +24,9 @@ and its ten named CSVs, and writes these three domains:
 3. `results/real_data/nhanes_p43_final/`.
 
 Frozen metrics reproduce the paper tables and figures without model fitting.
+The linear LS and Huber metrics use joint-intercept fits with the original
+Huber cutoffs. Earlier fitted-state archives are not the source of these
+updated baseline rows.
 Linear and ReLU runners expose separate estimator refits. The real-data
 entrypoint defaults to aggregate/fold-level frozen outputs, with an explicit
 full-retained-source maintenance option. No one-command full NHANES OTRR

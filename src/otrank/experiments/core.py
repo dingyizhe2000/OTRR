@@ -87,6 +87,10 @@ def _fit_method(
     save_dir: Path | None = None,
     progress_callback=None,
 ):
+    if name == "linear_free_intercept":
+        from otrank.estimators.free_intercept import fit_free_intercept_linear
+
+        return fit_free_intercept_linear(x, y, **params)
     if name == "zero_intercept_ols":
         return fit_zero_intercept_ols(x, y, ridge=float(params.get("ridge", 1e-8)))
     if name == "coordinatewise_huber":
@@ -334,8 +338,15 @@ def _run_one(
     dtype = _dtype_from_name(runtime_cfg.get("dtype", "float64"))
     torch.set_num_threads(int(runtime_cfg.get("torch_num_threads", 1)))
     dgp = str(data_cfg.get("dgp", "linear")).lower()
-    sim = _make_simulation_from_config(config, seed=seed, noise=noise, device=device, dtype=dtype)
     method_name = method["name"]
+    free_intercept = method_name == "linear_free_intercept"
+    if free_intercept:
+        if dgp != "linear":
+            raise ValueError("joint-intercept baselines require the linear DGP")
+        # The paper baseline data and rotation use the CPU float32 RNG path;
+        # the augmented-design solve itself is float64.
+        device, dtype = torch.device("cpu"), torch.float32
+    sim = _make_simulation_from_config(config, seed=seed, noise=noise, device=device, dtype=dtype)
     method_label = _method_label(method)
     noise_label = _noise_label(noise)
     method_params = dict(method.get("params", {}))
@@ -382,7 +393,8 @@ def _run_one(
         iteration: int | None = None,
         include_rotation: bool = True,
     ) -> dict[str, Any]:
-        pred = row_fit.predict(sim.x_test)
+        x_test = sim.x_test.to(row_fit.coef) if free_intercept else sim.x_test
+        pred = row_fit.predict(x_test)
         has_coef = hasattr(row_fit, "coef")
         row = {
         "seed": seed,
@@ -436,7 +448,7 @@ def _run_one(
                 rotation_params,
                 progress_callback=progress_callback,
             )
-            pred_rot_back = fit_rot.predict(sim.x_test) @ q
+            pred_rot_back = fit_rot.predict(x_test) @ q.to(pred)
             row["rotation_pred_gap"] = rotation_prediction_gap(pred, pred_rot_back)
             row["rotation_pred_mse_per_dim"] = rotation_prediction_mse_per_dim(pred, pred_rot_back)
             row["rotation_pred_rmse_per_dim"] = rotation_prediction_rmse_per_dim(pred, pred_rot_back)
@@ -466,7 +478,7 @@ def _run_one(
             if has_coef and hasattr(fit_rot, "coef"):
                 from otrank.metrics import rotation_coefficient_max_error
                 row["e_max"] = rotation_coefficient_max_error(row_fit.coef, fit_rot.coef, q)
-                coef_rot_back = q.T @ fit_rot.coef
+                coef_rot_back = q.to(fit_rot.coef).T @ fit_rot.coef
                 response_max, response_fro_sin = _principal_angle_stats(row_fit.coef, coef_rot_back)
                 row["rotation_response_principal_angle_max"] = response_max
                 row["rotation_response_principal_angle_fro_sin"] = response_fro_sin
@@ -477,6 +489,29 @@ def _run_one(
                     row_fit.coef,
                     coef_rot_back,
                 )
+        if free_intercept:
+            import numpy as np
+            from scipy.stats import norm
+            from otrank.estimators.free_intercept import free_intercept_cutoff
+            from otrank.inference.linear import linear_model_influence
+
+            loss = str(method_params["loss"])
+            cutoff = free_intercept_cutoff(sim.y_train, loss, method_params.get("tau_multiplier", 1.345))
+            cov = linear_model_influence(
+                sim.x_train, sim.y_train, row_fit, method=loss, intercept_mode="joint",
+                penalty=float(method_params.get("ridge", 1e-8)) / len(sim.x_train),
+                cw_cutoff=cutoff if loss == "cw_huber" else None,
+                radial_cutoff=cutoff if loss == "radial_huber" else None,
+            ).covariance
+            variances = np.diag(cov)
+            if not np.isfinite(variances).all() or np.any(variances < 0):
+                raise ValueError("invalid slope variance from joint-intercept sandwich")
+            se = np.sqrt(variances / len(sim.x_train))
+            error = (row_fit.coef - sim.coef).T.contiguous().numpy().reshape(-1)
+            for level in (95, 99):
+                half = norm.ppf((1 + level / 100) / 2) * se
+                row[f"coverage_{level}"] = float(np.mean(np.abs(error) <= half))
+                row[f"avg_interval_length_{level}"] = float(2 * half.mean())
         return row
 
     start = time.perf_counter()

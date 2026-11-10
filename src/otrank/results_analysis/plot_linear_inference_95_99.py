@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator, FormatStrFormatter
 import numpy as np
 import pandas as pd
 
@@ -54,29 +56,32 @@ def _panel(ax, frame: pd.DataFrame, metric: str, rng: np.random.Generator) -> No
         ax.scatter(
             np.full(values.size, position) + jitter,
             values,
-            s=10,
+            s=2.4,
             color=COLORS[method],
             edgecolors="none",
             alpha=0.38,
             zorder=3,
         )
-    ax.set_xticks(positions, METHODS, rotation=30, ha="right", rotation_mode="anchor")
+    ax.set_xticks(positions, [])
     ax.grid(axis="y", color="#D9D9D9", linewidth=0.55, alpha=0.8)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.tick_params(axis="both", labelsize=8.0)
+    ax.tick_params(axis="both", length=2.5, width=0.55, labelsize=8.5, pad=2)
 
 
+@plt.rc_context()
 def build_figure(data: pd.DataFrame) -> plt.Figure:
-    figure, axes = plt.subplots(4, 3, figsize=(16.0, 14.0), constrained_layout=True)
+    plt.rcdefaults()
+    figure, axes = plt.subplots(4, 3, figsize=(6.5, 6.60), sharey="row")
+    figure.subplots_adjust(left=0.133, right=0.989, top=0.943, bottom=0.072, wspace=0.10, hspace=0.25)
     rng = np.random.default_rng(20260811)
     labels = iter([f"({chr(ord('a') + index)})" for index in range(12)])
     length_values = data[["avg_interval_length_95", "avg_interval_length_99"]].to_numpy(float)
     length_limits = (float(length_values.min()) / 1.12, float(length_values.max()) * 1.12)
     row_labels = {
-        "avg_interval_length_95": "Average 95% CI length",
-        "coverage_95": "95% coefficientwise coverage",
-        "avg_interval_length_99": "Average 99% CI length",
-        "coverage_99": "99% coefficientwise coverage",
+        "avg_interval_length_95": "95% CI length",
+        "coverage_95": "95% coverage",
+        "avg_interval_length_99": "99% CI length",
+        "coverage_99": "99% coverage",
     }
 
     for column, noise in enumerate("ABC"):
@@ -84,6 +89,7 @@ def build_figure(data: pd.DataFrame) -> plt.Figure:
         for row, metric in enumerate(METRICS):
             ax = axes[row, column]
             _panel(ax, block, metric, rng)
+            ax.tick_params(axis="y", labelleft=column == 0)
             ax.text(
                 0.02,
                 0.025,
@@ -91,25 +97,33 @@ def build_figure(data: pd.DataFrame) -> plt.Figure:
                 transform=ax.transAxes,
                 ha="left",
                 va="bottom",
-                fontsize=9.5,
+                fontsize=8.5,
             )
             if metric.startswith("avg_interval_length"):
                 ax.set_yscale("log")
                 ax.set_ylim(*length_limits)
+                ax.yaxis.set_major_locator(FixedLocator([0.02, 0.04, 0.08, 0.16]))
+                ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
+                ax.yaxis.set_minor_locator(NullLocator())
             else:
                 ax.set_ylim(0.875 if metric == "coverage_99" else 0.80, 1.005)
+                ticks = [0.88, 0.92, 0.96, 1.00] if metric == "coverage_99" else [0.80, 0.85, 0.90, 0.95, 1.00]
+                ax.yaxis.set_major_locator(FixedLocator(ticks))
+                ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
                 nominal = 0.95 if metric == "coverage_95" else 0.99
                 ax.axhline(
                     nominal,
                     color="#555555",
                     linestyle="--",
-                    linewidth=1.0,
+                    linewidth=0.8,
                     zorder=1,
                 )
             if column == 0:
-                suffix = " (log scale)" if metric.startswith("avg_interval_length") else ""
-                ax.set_ylabel(row_labels[metric] + suffix, fontsize=9.5)
-        axes[0, column].set_title(f"Noise {noise}", fontsize=11.5, pad=8)
+                ax.set_ylabel(row_labels[metric], fontsize=9.5, labelpad=5)
+        axes[0, column].set_title(f"Noise {noise}", fontsize=10.5, pad=6)
+    figure.legend(handles=[Patch(facecolor=COLORS[method], edgecolor="#333333", label=method) for method in METHODS],
+                  loc="lower center", bbox_to_anchor=(0.5, 0.007), ncols=len(METHODS),
+                  frameon=False, fontsize=9, handlelength=1.05, handletextpad=0.45, columnspacing=1.0)
     return figure
 
 
@@ -149,8 +163,8 @@ def main() -> int:
         raise ValueError("final inference CSV contains a non-finite plotting metric")
 
     figure = build_figure(data)
-    figure.savefig(output / "linear_inference_boxplots.pdf", bbox_inches="tight")
-    figure.savefig(output / "linear_inference_boxplots.png", dpi=350, bbox_inches="tight")
+    figure.savefig(output / "linear_inference_boxplots.pdf")
+    figure.savefig(output / "linear_inference_boxplots.png", dpi=350)
     plt.close(figure)
 
     audit = {

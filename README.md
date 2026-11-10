@@ -90,7 +90,8 @@ semantic keys independent of manuscript table/figure numbering.
 
 Large historical fitted-state archives are optional private downloads.
 `paper_artifacts.json` identifies their scope explicitly: the old archive hashes
-do not include the later centering and coefficient-equivariance updates.
+do not include the current free-intercept baselines, centering, or
+coefficient-equivariance updates.
 `download_paper_artifacts.py` fails until an authorized host is configured; no
 download URL or new release is implied.
 
@@ -104,7 +105,15 @@ repetitions per method/noise:
 python reproduce_paper_outputs.py --project-root . --only linear
 ```
 
-The manifest records pairing provenance, including MCQR's pooled historical and
+LS, CW-Huber, and Radial Huber estimate an unpenalized intercept and use a
+`1e-8` ridge on slopes. The Huber fits start from augmented least squares
+and use at most 80 IRLS iterations with relative update tolerance `1e-7`.
+CW-Huber uses `1.345 * max(MAD(Y_j) / 0.6745, 1e-6)` in each response
+coordinate, recalculated in the rotated basis. Radial Huber uses
+`1.345 * sqrt(d)`. Their Wald intervals use the slope block of the full
+intercept-and-slope sandwich; the cutoffs are treated as fixed.
+The other estimators and the OTRR initializer are unchanged. The manifest
+records pairing provenance, including MCQR's pooled historical and
 supplemental CPU pairs. Plots use actual observations, not display thresholds.
 To rerun estimator training instead:
 
@@ -113,10 +122,11 @@ python run_simulation_study.py --config configs/simulation_linear.json \
   --out-root reproduced_results/linear
 ```
 
-Fresh fits are separate from frozen paper-output reproduction. This training
-command does not run the full K=50 covariance study or import new fits into the
-paper data. A matching-data inference/analysis step is required; generic API
-solver defaults are not the paper's numerical protocol.
+Fresh fits are separate from frozen paper-output reproduction. This command
+also writes 95%/99% coefficientwise coverage and mean interval lengths for the
+three free-intercept baselines. It does not run the full K=50 OTRR covariance
+study or import new fits into the paper data. Generic API solver defaults are
+not the paper's numerical protocol.
 
 For maintainers with full retained IF bundles predating the covariance correction,
 rebuild the 150 linear OTRR inference artifacts without refitting or re-solving OT:
@@ -124,18 +134,15 @@ rebuild the 150 linear OTRR inference artifacts without refitting or re-solving 
 ```bash
 PYTHONPATH=src python -m otrank.results_analysis.recenter_linear_inference \
   --project-root . --activate
-PYTHONPATH=src python -m otrank.results_analysis.finalize_linear_simulation \
-  --project-root . --inference-only
 ```
 
 This creates the immutable `inference_versions/centered_plugin_v1` directory,
 preserves the original artifacts and paper outputs, and records the active
 version in `config/active_inference.json`. The migration exploits the retained
 common-design Kronecker IF structure, with an explicit numerical reconstruction
-tolerance; it does not reproduce the original GPU random clouds. The retained
-finalizer uses the selected version; the default compact pipeline uses already
-corrected CSVs. A completed
-version is not overwritten by rerunning the migration.
+tolerance; it does not reproduce the original GPU random clouds or refresh
+historical baseline fits. Use the compact pipeline for the current paper
+tables. Rerunning the migration does not overwrite a completed version.
 
 ### ReLU simulation
 

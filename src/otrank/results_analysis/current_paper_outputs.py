@@ -36,8 +36,8 @@ def linear(project: Path, root: Path) -> None:
     write_table4_rows(inference_summary, root/"tables/linear_inference_table_rows.tex")
     for stem, figure in [("linear_accuracy_equivariance_boxplots", build_figure(point)),
                          ("linear_inference_boxplots", inference_figure(inference))]:
-        figure.savefig(root/f"figures/{stem}.pdf", bbox_inches="tight")
-        figure.savefig(root/f"figures/{stem}.png", dpi=350, bbox_inches="tight")
+        figure.savefig(root/f"figures/{stem}.pdf")
+        figure.savefig(root/f"figures/{stem}.png", dpi=350)
         plt.close(figure)
 
 

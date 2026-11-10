@@ -1,13 +1,14 @@
 {
   "schema_version": 1,
-  "paper_version": "centered_equivariance_v1",
+  "paper_version": "linear_free_intercept_v2",
   "linear_inference_version": "centered_plugin_v1",
+  "linear_baseline_version": "joint_intercept_original_cutoffs_v1",
   "equivariance_metric": "entrywise_max_abs",
   "files": [
     {
       "file": "linear_point.csv",
       "rows": 1050,
-      "bytes": 41733,
+      "bytes": 42003,
       "columns": [
         "noise",
         "method",
@@ -19,7 +20,7 @@
     {
       "file": "linear_equivariance.csv",
       "rows": 1050,
-      "bytes": 58428,
+      "bytes": 69736,
       "columns": [
         "noise",
         "method",
@@ -32,7 +33,7 @@
     {
       "file": "linear_inference.csv",
       "rows": 900,
-      "bytes": 54711,
+      "bytes": 55609,
       "columns": [
         "noise",
         "method",
@@ -141,7 +142,7 @@
     }
   ],
   "scope": "Frozen paper metrics only; no participant-level data, coefficient states, Q matrices or raw IF arrays.",
-  "linear_pairing": "Retained historical pairs plus supplemental CPU reproductions. MCQR pools 30 historical and 20 supplemental CPU pairs per noise; calibration E_max differences reached 0.008319. Sources remain labeled; bitwise historical equivalence is not claimed.",
+  "linear_pairing": "LS, CW-Huber and Radial Huber use the original 50 seeds with joint intercepts and matched CPU rotations; historical OTRR uses its retained CUDA rotations. MCQR pools 30 historical and 20 supplemental CPU pairs per noise; calibration E_max differences reached 0.008319. Bitwise historical or cross-device equivalence is not claimed.",
   "rotation_replay": "Seeds are device-, dtype-, generator- and runtime-specific; no cross-device identity is claimed.",
   "nhanes_uncertainty": "E_max SD is descriptive across 5 overlapping folds x 2 rotations. MAE and CI-length bootstrap SDs are retained summaries, not recomputed without private records.",
   "semisynthetic": "Noise C, kappa 0.25/0.5, R=10; response provenance differs between retained baselines and reconstructed OTRR. Bootstrap ratio SDs are retained.",

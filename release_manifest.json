@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "paper_version": "centered_equivariance_v1",
+  "paper_version": "linear_free_intercept_v2",
   "files": [
     {
       "path": ".gitignore",
@@ -14,12 +14,12 @@
     },
     {
       "path": "README.md",
-      "bytes": 14182,
+      "bytes": 14688,
       "role": "code_or_documentation"
     },
     {
       "path": "RELEASE_SCOPE.md",
-      "bytes": 1973,
+      "bytes": 2144,
       "role": "code_or_documentation"
     },
     {
@@ -34,7 +34,7 @@
     },
     {
       "path": "configs/simulation_linear.json",
-      "bytes": 4407,
+      "bytes": 4417,
       "role": "code_or_documentation"
     },
     {
@@ -54,27 +54,27 @@
     },
     {
       "path": "paper_artifacts.json",
-      "bytes": 2510,
+      "bytes": 2539,
       "role": "code_or_documentation"
     },
     {
       "path": "paper_data/linear_equivariance.csv",
-      "bytes": 58428,
+      "bytes": 69736,
       "role": "paper_metric"
     },
     {
       "path": "paper_data/linear_inference.csv",
-      "bytes": 54711,
+      "bytes": 55609,
       "role": "paper_metric"
     },
     {
       "path": "paper_data/linear_point.csv",
-      "bytes": 41733,
+      "bytes": 42003,
       "role": "paper_metric"
     },
     {
       "path": "paper_data/manifest.json",
-      "bytes": 3852,
+      "bytes": 4004,
       "role": "paper_metric"
     },
     {
@@ -134,7 +134,7 @@
     },
     {
       "path": "run_simulation_study.py",
-      "bytes": 35884,
+      "bytes": 36528,
       "role": "code_or_documentation"
     },
     {
@@ -234,7 +234,7 @@
     },
     {
       "path": "src/otrank/experiments/core.py",
-      "bytes": 27431,
+      "bytes": 29459,
       "role": "code_or_documentation"
     },
     {
@@ -264,7 +264,7 @@
     },
     {
       "path": "src/otrank/experiments/run_simulation.py",
-      "bytes": 7883,
+      "bytes": 8015,
       "role": "code_or_documentation"
     },
     {
@@ -304,7 +304,7 @@
     },
     {
       "path": "src/otrank/inference/linear.py",
-      "bytes": 9253,
+      "bytes": 9494,
       "role": "code_or_documentation"
     },
     {
@@ -359,7 +359,7 @@
     },
     {
       "path": "src/otrank/ot_maps/pnw.py",
-      "bytes": 39641,
+      "bytes": 39744,
       "role": "code_or_documentation"
     },
     {
@@ -414,7 +414,7 @@
     },
     {
       "path": "src/otrank/results_analysis/current_paper_outputs.py",
-      "bytes": 5519,
+      "bytes": 5477,
       "role": "code_or_documentation"
     },
     {
@@ -434,17 +434,17 @@
     },
     {
       "path": "src/otrank/results_analysis/paper_data.py",
-      "bytes": 4140,
+      "bytes": 4245,
       "role": "code_or_documentation"
     },
     {
       "path": "src/otrank/results_analysis/plot_linear_accuracy_equivariance.py",
-      "bytes": 3000,
+      "bytes": 4235,
       "role": "code_or_documentation"
     },
     {
       "path": "src/otrank/results_analysis/plot_linear_inference_95_99.py",
-      "bytes": 6132,
+      "bytes": 7038,
       "role": "code_or_documentation"
     },
     {
@@ -456,6 +456,11 @@
       "path": "src/otrank/results_analysis/reproduce_paper_outputs.py",
       "bytes": 3553,
       "role": "code_or_documentation"
+    },
+    {
+      "path": "src/otrank/estimators/free_intercept.py",
+      "role": "code_or_documentation",
+      "bytes": 3143
     },
     {
       "path": "src/otrank/vectorization.py",

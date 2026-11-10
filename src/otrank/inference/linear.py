@@ -107,10 +107,11 @@ def linear_model_influence(
 ) -> LinearInfluenceResult:
     """Compute a sandwich IF matching the paper's linear estimating equations.
 
-    ``intercept_mode='zero'`` returns the standard column-major ``p*d`` slope
-    IF used in the simulations. ``intercept_mode='mean'`` uses a mean-residual equation
-    for the intercept and a robust centered-predictor equation for slopes,
-    matching the real-data fitters.
+    ``intercept_mode='joint'`` uses the same score for the intercept and slopes
+    on the augmented design, then extracts the slope block. ``penalty`` is on
+    the average-loss scale and applies only to slopes. ``intercept_mode='mean'``
+    uses a mean-residual intercept equation and centered-predictor slope
+    equations, matching the real-data fitters. ``'zero'`` omits the intercept.
     """
 
     x_np = _numpy(x)
@@ -137,22 +138,23 @@ def linear_model_influence(
     d = y_np.shape[1]
     mode = intercept_mode.lower()
 
-    if mode == "zero":
-        equation = vec_coefficient_batch(
-            np.einsum("nd,np->ndp", score, x_np, optimize=True)
+    if mode in {"zero", "joint"}:
+        z = np.column_stack((np.ones(n), x_np)) if mode == "joint" else x_np
+        dim = d * z.shape[1]
+        slope_indices = np.arange(d if mode == "joint" else 0, dim)
+        full_equation = vec_coefficient_batch(
+            np.einsum("nd,np->ndp", score, z, optimize=True)
         )
         bread4 = np.einsum(
             "ijk,ia,ib->ajbk",
             derivative,
-            x_np,
-            x_np,
+            z,
+            z,
             optimize=True,
         ) / n
-        bread = bread4.reshape(d * p, d * p)
+        bread = bread4.reshape(dim, dim)
         if penalty:
-            bread += float(penalty) * np.eye(d * p)
-        full_equation = equation
-        slope_indices = np.arange(d * p)
+            bread[slope_indices, slope_indices] += float(penalty)
     elif mode in {"mean", "center", "intercept"}:
         q = p + 1
         z = np.concatenate([np.ones((n, 1)), x_np], axis=1)
@@ -183,7 +185,7 @@ def linear_model_influence(
             bread += float(penalty) * np.kron(np.diag(mask), np.eye(d))
         slope_indices = np.arange(d, d * q)
     else:
-        raise ValueError("intercept_mode must be 'zero' or 'mean'")
+        raise ValueError("intercept_mode must be 'zero', 'joint', or 'mean'")
 
     centered_equation = full_equation - full_equation.mean(axis=0, keepdims=True)
     full_influence = np.linalg.solve(bread, centered_equation.T).T

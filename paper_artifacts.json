@@ -2,8 +2,8 @@
   "schema_version": 1,
   "artifact_version": null,
   "availability": "not_publicly_hosted",
-  "bundle_scope": "Historical fitted-state archives; their recorded hashes do not include the later centered covariance or coefficient-equivariance updates.",
-  "current_paper_metrics": {"version": "centered_equivariance_v1", "path": "paper_data/manifest.json", "availability": "included_compact_csv"},
+  "bundle_scope": "Historical fitted-state archives; their recorded hashes do not include the current free-intercept baselines, centered covariance, or coefficient-equivariance updates.",
+  "current_paper_metrics": {"version": "linear_free_intercept_v2", "path": "paper_data/manifest.json", "availability": "included_compact_csv"},
   "release_url": null,
   "bundles": [
     {
